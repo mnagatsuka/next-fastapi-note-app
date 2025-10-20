@@ -1,0 +1,18 @@
+type: object
+properties:
+  status:
+    type: string
+    enum: [success]
+  data:
+    type: object
+    properties:
+      notes:
+        type: array
+        items:
+          $ref: ./private-note.yml
+      pagination:
+        $ref: ./pagination.yml
+    required: [notes, pagination]
+required: [status, data]
+additionalProperties: false
+

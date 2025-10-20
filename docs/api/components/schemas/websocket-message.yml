@@ -1,0 +1,21 @@
+type: object
+properties:
+  type:
+    type: string
+    enum: [comment.created, comments.list, test]
+    description: Type of WebSocket message
+  data:
+    oneOf:
+      - $ref: ./websocket-comment-created.yml
+      - $ref: ./websocket-comments-list.yml
+      - $ref: ./websocket-test-message.yml
+    description: Message payload that varies based on type
+  timestamp:
+    type: string
+    format: date-time
+    description: Server timestamp when message was sent
+required:
+  - type
+  - data
+  - timestamp
+additionalProperties: false

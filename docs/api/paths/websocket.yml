@@ -1,0 +1,166 @@
+paths:
+  /websocket/connect:
+    post:
+      tags: [WebSocket]
+      summary: WebSocket connection handler
+      description: |
+        Internal endpoint for handling WebSocket connection events.
+        This endpoint is triggered automatically by the WebSocket infrastructure
+        when clients establish connections.
+      operationId: websocketConnect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestContext:
+                  type: object
+                  properties:
+                    connectionId:
+                      type: string
+                      description: WebSocket connection ID
+                    routeKey:
+                      type: string
+                      enum: ['$connect']
+                  required: [connectionId, routeKey]
+              required: [requestContext]
+              additionalProperties: true
+      responses:
+        '200':
+          description: Connection established successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 200
+                  body:
+                    type: string
+                    example: "Connected"
+        '400':
+          description: Bad request - invalid connection data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  body:
+                    type: string
+                    example: "Bad Request"
+        '500':
+          description: Connection failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  body:
+                    type: string
+                    example: "Internal Server Error"
+  /websocket/disconnect:
+    post:
+      tags: [WebSocket]
+      summary: WebSocket disconnection handler
+      description: |
+        Internal endpoint for handling WebSocket disconnection events.
+        This endpoint is triggered automatically by the WebSocket infrastructure
+        when clients disconnect.
+      operationId: websocketDisconnect
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                requestContext:
+                  type: object
+                  properties:
+                    connectionId:
+                      type: string
+                      description: WebSocket connection ID
+                    routeKey:
+                      type: string
+                      enum: ['$disconnect']
+                  required: [connectionId, routeKey]
+              required: [requestContext]
+              additionalProperties: true
+      responses:
+        '200':
+          description: Disconnection handled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 200
+                  body:
+                    type: string
+                    example: "Disconnected"
+        '400':
+          description: Bad request - invalid disconnection data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 400
+                  body:
+                    type: string
+                    example: "Bad Request"
+        '500':
+          description: Disconnection handling failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 500
+                  body:
+                    type: string
+                    example: "Internal Server Error"
+  /websocket/connections:
+    get:
+      tags: [WebSocket]
+      summary: Get WebSocket connection count
+      description: |
+        Health check endpoint that returns the current number of active
+        WebSocket connections. Used for monitoring and debugging.
+      operationId: getWebSocketConnections
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Connection count retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connectionCount:
+                    type: integer
+                    description: Number of active WebSocket connections
+                    example: 42
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: Current server timestamp
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '500':
+          description: Failed to retrieve connection count

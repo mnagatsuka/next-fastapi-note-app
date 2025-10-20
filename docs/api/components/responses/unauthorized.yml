@@ -1,0 +1,13 @@
+description: Unauthorized
+content:
+  application/json:
+    schema:
+      $ref: ../schemas/error-response.yml
+    examples:
+      example:
+        value:
+          status: error
+          error:
+            code: UNAUTHORIZED
+            message: Missing or invalid token
+

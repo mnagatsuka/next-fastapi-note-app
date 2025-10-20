@@ -1,0 +1,194 @@
+paths:
+  /me/notes:
+    get:
+      tags: [Personal Notebook]
+      summary: List my private notes
+      operationId: getMyNotes
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: ../components/parameters/page-param.yml
+        - $ref: ../components/parameters/limit-param.yml
+      responses:
+        '200':
+          description: Paginated list of user's private notes
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/private-notes-list-response.yml
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+    post:
+      tags: [Personal Notebook]
+      summary: Create a new private note
+      operationId: createMyNote
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 120
+                  description: Optional title for the note
+                content:
+                  type: string
+                  description: Plain text content
+              additionalProperties: false
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/private-note-response.yml
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+  /me/notes/{id}:
+    get:
+      tags: [Personal Notebook]
+      summary: Get my private note by ID
+      operationId: getMyNoteById
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Note ID (UUIDv4)
+      responses:
+        '200':
+          description: Private note
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/private-note-response.yml
+        '404': { $ref: ../components/responses/not-found.yml }
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+    patch:
+      tags: [Personal Notebook]
+      summary: Update my private note
+      operationId: updateMyNote
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Note ID (UUIDv4)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  maxLength: 120
+                content:
+                  type: string
+              additionalProperties: false
+      responses:
+        '200':
+          description: Updated note
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/private-note-response.yml
+        '404': { $ref: ../components/responses/not-found.yml }
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+    delete:
+      tags: [Personal Notebook]
+      summary: Delete my private note
+      operationId: deleteMyNote
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Note ID (UUIDv4)
+      responses:
+        '200':
+          description: Note deleted
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/delete-note-response.yml
+        '404': { $ref: ../components/responses/not-found.yml }
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+  /me/notes/{id}/publish:
+    post:
+      tags: [Personal Notebook]
+      summary: Make note public (publish)
+      operationId: publishNote
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Note ID (UUIDv4)
+      responses:
+        '200':
+          description: Note published successfully
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/private-note-response.yml
+        '404': { $ref: ../components/responses/not-found.yml }
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+  /me/notes/{id}/unpublish:
+    post:
+      tags: [Personal Notebook]
+      summary: Make note private (unpublish)
+      operationId: unpublishNote
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Note ID (UUIDv4)
+      responses:
+        '200':
+          description: Note unpublished successfully
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/private-note-response.yml
+        '404': { $ref: ../components/responses/not-found.yml }
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+

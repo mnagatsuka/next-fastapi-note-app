@@ -1,0 +1,22 @@
+type: object
+properties:
+  status:
+    type: string
+    enum: [success]
+  data:
+    type: object
+    properties:
+      user:
+        $ref: ./user-profile.yml
+      isAnonymous:
+        type: boolean
+      created:
+        type: boolean
+        description: Indicates if a new DB user record was created during auth
+      wasPromoted:
+        type: boolean
+        description: Indicates if an anonymous account was promoted
+    required: [user]
+required: [status, data]
+additionalProperties: false
+

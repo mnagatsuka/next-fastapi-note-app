@@ -1,0 +1,12 @@
+id: 550e8400-e29b-41d4-a716-446655440000
+title: Hello World
+content: |
+  This is a simple public note in plain text.
+author:
+  id: user_ABC123
+  displayName: Alice
+  avatarUrl: https://example.com/avatars/alice.png
+createdAt: 2025-01-01T12:00:00Z
+updatedAt: 2025-01-02T08:30:00Z
+publishedAt: 2025-01-02T08:30:00Z
+

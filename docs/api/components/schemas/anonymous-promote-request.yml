@@ -1,0 +1,9 @@
+type: object
+properties:
+  anonymous_firebase_uuid:
+    type: string
+    format: uuid
+    description: The Firebase UID of the anonymous user to be promoted
+required:
+  - anonymous_firebase_uuid
+additionalProperties: false

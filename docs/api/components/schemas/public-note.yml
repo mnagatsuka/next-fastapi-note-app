@@ -1,0 +1,26 @@
+type: object
+description: Public note entity (includes full content for detail view)
+properties:
+  id:
+    type: string
+    format: uuid
+  title:
+    type: string
+    maxLength: 120
+  content:
+    type: string
+    description: Plain text content
+  author:
+    $ref: ./author.yml
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+  publishedAt:
+    type: string
+    format: date-time
+required: [id, title, content, author, createdAt, updatedAt, publishedAt]
+additionalProperties: false
+

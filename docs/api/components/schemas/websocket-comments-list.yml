@@ -1,0 +1,21 @@
+type: object
+description: WebSocket message payload for comments list updates
+properties:
+  postId:
+    type: string
+    format: uuid
+    description: ID of the note these comments belong to
+  comments:
+    type: array
+    items:
+      $ref: ./comment.yml
+    description: Complete list of comments for the note
+  count:
+    type: integer
+    description: Total number of comments
+    example: 5
+required:
+  - postId
+  - comments
+  - count
+additionalProperties: false

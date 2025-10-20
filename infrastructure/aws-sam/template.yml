@@ -1,0 +1,392 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: FastAPI backend on AWS Lambda using Lambda Web Adapter (image-based)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: development
+    AllowedValues: [development, staging, production]
+    Description: Deployment environment
+
+  AllowedOrigins:
+    Type: String
+    Default: http://localhost:3000
+    Description: Comma-separated list of allowed CORS origins for Function URL
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+
+Resources:
+  NoteAPIFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures: [arm64]
+      FunctionName: !Sub '${AWS::StackName}-api'
+      Environment:
+        Variables:
+          APP_ENV: !Ref Environment
+          ENVIRONMENT: !Ref Environment
+          CORS_ALLOWED_ORIGINS: !Ref AllowedOrigins
+          REPOSITORY_PROVIDER: dynamodb
+          DYNAMODB_TABLE_NOTES: !Ref NotesTable
+          DYNAMODB_TABLE_USERS: !Ref UsersTable
+          # Secrets Manager dynamic reference — set up per docs
+          FIREBASE_CREDENTIALS_JSON: !Sub '{{resolve:secretsmanager:/next-fastapi-note-app/${Environment}/firebase-credentials:SecretString}}'
+          # WebSocket broadcast endpoint for real-time notifications
+          APP_SERVERLESS_WEBSOCKET_ENDPOINT: !Sub 'https://${WebSocketHttpApi}.execute-api.${AWS::Region}.amazonaws.com'
+          LOG_LEVEL: DEBUG
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource:
+                - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:/next-fastapi-note-app/${Environment}/firebase-credentials-*'
+        - DynamoDBCrudPolicy:
+            TableName: !Ref NotesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      DockerContext: ../../
+      Dockerfile: backend/Dockerfile.lambda
+
+  # =============================================================================
+  # WEBSOCKET LAMBDA FUNCTIONS - Real-time messaging handlers
+  # =============================================================================
+  WebSocketConnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-websocket-connect'
+      CodeUri: websocket-handlers/
+      Handler: dist/connect.handler
+      Runtime: nodejs20.x
+      Architectures: [x86_64]
+      Environment:
+        Variables:
+          DYNAMODB_CONNECTIONS_TABLE: !Ref WebSocketConnectionsTable
+          WEBSOCKET_API_ENDPOINT: !Sub 'https://${WebSocketAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+          LOG_LEVEL: DEBUG
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WebSocketConnectionsTable
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  WebSocketDisconnectFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-websocket-disconnect'
+      CodeUri: websocket-handlers/
+      Handler: dist/disconnect.handler
+      Runtime: nodejs20.x
+      Architectures: [x86_64]
+      Environment:
+        Variables:
+          DYNAMODB_CONNECTIONS_TABLE: !Ref WebSocketConnectionsTable
+          WEBSOCKET_API_ENDPOINT: !Sub 'https://${WebSocketAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+          LOG_LEVEL: DEBUG
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WebSocketConnectionsTable
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  WebSocketDefaultFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-websocket-default'
+      CodeUri: websocket-handlers/
+      Handler: dist/default.handler
+      Runtime: nodejs20.x
+      Architectures: [x86_64]
+      Environment:
+        Variables:
+          WEBSOCKET_API_ENDPOINT: !Sub 'https://${WebSocketAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+          LOG_LEVEL: DEBUG
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketAPI}/${Environment}/*/@connections/*'
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  WebSocketBroadcastFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-websocket-broadcast'
+      CodeUri: websocket-handlers/
+      Handler: dist/broadcast.handler
+      Runtime: nodejs20.x
+      Architectures: [x86_64]
+      Environment:
+        Variables:
+          DYNAMODB_CONNECTIONS_TABLE: !Ref WebSocketConnectionsTable
+          WEBSOCKET_API_ENDPOINT: !Sub 'https://${WebSocketAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+          LOG_LEVEL: DEBUG
+      Events:
+        BroadcastApi:
+          Type: HttpApi
+          Properties:
+            Path: /websocket/broadcast
+            Method: post
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WebSocketConnectionsTable
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketAPI}/${Environment}/*/@connections/*'
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  NoteFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !Ref NoteAPIFunction
+      AuthType: NONE
+      Cors:
+        AllowOrigins: !Split [",", !Ref AllowedOrigins]
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        AllowCredentials: false
+
+  NoteFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref NoteAPIFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+  # =============================================================================
+  # WEBSOCKET API GATEWAY - Real-time messaging infrastructure
+  # =============================================================================
+  WebSocketAPI:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${AWS::StackName}-websocket-api'
+      Description: WebSocket API for real-time comment notifications
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+
+  # WebSocket Integrations
+  WebSocketConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketConnectFunction.Arn}/invocations'
+
+  WebSocketDisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDisconnectFunction.Arn}/invocations'
+
+  WebSocketDefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketDefaultFunction.Arn}/invocations'
+
+  # WebSocket Routes
+  WebSocketConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: $connect
+      Target: !Sub 'integrations/${WebSocketConnectIntegration}'
+
+  WebSocketDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: $disconnect
+      Target: !Sub 'integrations/${WebSocketDisconnectIntegration}'
+
+  WebSocketDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      RouteKey: $default
+      Target: !Sub 'integrations/${WebSocketDefaultIntegration}'
+
+  # WebSocket Stage
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WebSocketAPI
+      StageName: !Ref Environment
+      AutoDeploy: true
+
+  # =============================================================================
+  # HTTP API GATEWAY - For WebSocket broadcast endpoint
+  # =============================================================================
+  WebSocketHttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${AWS::StackName}-websocket-http-api'
+      Description: HTTP API for WebSocket broadcast operations
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins: !Split [",", !Ref AllowedOrigins]
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        AllowMethods:
+          - POST
+        AllowCredentials: false
+
+  WebSocketHttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WebSocketHttpApi
+      StageName: $default
+      AutoDeploy: true
+
+  # =============================================================================
+  # LAMBDA PERMISSIONS - WebSocket function invocation rights
+  # =============================================================================
+  WebSocketConnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketConnectFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketAPI}/*/*'
+
+  WebSocketDisconnectPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketDisconnectFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketAPI}/*/*'
+
+  WebSocketDefaultPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketDefaultFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketAPI}/*/*'
+
+  # DynamoDB Tables (pay-per-request)
+  NotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: owner_uid
+          AttributeType: S
+        - AttributeName: is_public
+          AttributeType: S
+        - AttributeName: published_at
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Critical for private note queries - query by owner with creation time sorting
+        - IndexName: OwnerIndex
+          KeySchema:
+            - AttributeName: owner_uid
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Critical for public note queries with publication time sorting
+        - IndexName: PublicNotesIndex
+          KeySchema:
+            - AttributeName: is_public
+              KeyType: HASH
+            - AttributeName: published_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: uid
+          AttributeType: S
+      KeySchema:
+        - AttributeName: uid
+          KeyType: HASH
+
+  # WebSocket Connections Table for real-time messaging
+  WebSocketConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-websocket-connections'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: connectionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: connectionId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+Outputs:
+  FunctionUrlEndpoint:
+    Description: Lambda Function URL endpoint
+    Value: !GetAtt NoteFunctionUrl.FunctionUrl
+  FunctionName:
+    Description: Deployed Lambda function name
+    Value: !Ref NoteAPIFunction
+  NotesTableName:
+    Description: DynamoDB Notes table
+    Value: !Ref NotesTable
+  UsersTableName:
+    Description: DynamoDB Users table
+    Value: !Ref UsersTable
+  WebSocketConnectionsTableName:
+    Description: DynamoDB WebSocket Connections table
+    Value: !Ref WebSocketConnectionsTable
+  WebSocketURL:
+    Description: WebSocket API URL for real-time connections
+    Value: !Sub 'wss://${WebSocketAPI}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub '${AWS::StackName}-WebSocketURL'
+  WebSocketBroadcastEndpoint:
+    Description: HTTP endpoint for WebSocket broadcast operations
+    Value: !Sub 'https://${WebSocketHttpApi}.execute-api.${AWS::Region}.amazonaws.com/websocket/broadcast'
+    Export:
+      Name: !Sub '${AWS::StackName}-WebSocketBroadcastEndpoint'
+  WebSocketApiId:
+    Description: WebSocket API Gateway ID
+    Value: !Ref WebSocketAPI
+    Export:
+      Name: !Sub '${AWS::StackName}-WebSocketApiId'

@@ -1,0 +1,10 @@
+apis:
+  main:
+    root: openapi/openapi.bundled.yml
+
+bundle:
+  dereferenceInlineSchema: false
+
+lint:
+  extends:
+    - recommended

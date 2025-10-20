@@ -1,0 +1,38 @@
+# Production Dockerfile for AWS Lambda using Lambda Web Adapter
+# Build context is repository root; referenced by SAM template Metadata
+
+FROM --platform=linux/arm64 python:3.13-slim AS base
+
+# Install minimal OS tools and clean up
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Install uv (Python package manager)
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Install AWS Lambda Web Adapter (extension)
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.9.0 /lambda-adapter /opt/extensions/lambda-adapter
+
+WORKDIR /app
+
+# Copy backend project first (maximize build cache)
+COPY backend/ ./backend/
+
+# Install project into system site-packages (no runtime uv needed)
+WORKDIR /app/backend
+ENV UV_HTTP_TIMEOUT=120
+RUN uv pip install --system --no-cache -e .
+
+# Environment for Lambda Web Adapter and Python
+ENV AWS_LWA_PORT=8080 \
+    PYTHONUNBUFFERED=1 \
+    XDG_CACHE_HOME=/tmp \
+    UV_NO_CACHE=1
+
+# The Lambda Web Adapter listens on 8080 inside the container
+EXPOSE 8080
+
+# Start FastAPI using system Python
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

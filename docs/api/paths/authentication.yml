@@ -1,0 +1,57 @@
+paths:
+  /auth/login:
+    get:
+      tags: [Authentication]
+      summary: Authenticate regular user (validate Firebase token; may insert user)
+      operationId: loginRegularUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Regular user session validated (and created if first time)
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/auth-result-response.yml
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+  /auth/anonymous-login:
+    post:
+      tags: [Authentication]
+      summary: Authenticate anonymous user (validate Firebase anonymous token)
+      operationId: authenticateAnonymous
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Anonymous session validated; user ensured in DB
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/auth-result-response.yml
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+  /auth/anonymous-promote:
+    post:
+      tags: [Authentication]
+      summary: Promote anonymous user to regular account
+      operationId: promoteAnonymousUser
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../components/schemas/anonymous-promote-request.yml
+      responses:
+        '200':
+          description: Anonymous account promoted to regular user
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/auth-result-response.yml
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }

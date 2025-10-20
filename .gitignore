@@ -1,0 +1,110 @@
+###############################################
+# Root .gitignore tailored to this monorepo
+# Stack: Next.js + TypeScript + pnpm, FastAPI + Python, OpenAPI tooling
+###############################################
+
+# Temporary workspace
+temp/
+
+###############################################
+# Node / Next.js / pnpm
+###############################################
+node_modules/
+.pnpm-store/
+.next/
+.turbo/
+.swc/
+.vercel/
+out/
+dist/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Storybook
+storybook-static/
+
+###############################################
+# Frontend generated (Orval)
+# If you prefer committing generated clients, remove these lines.
+###############################################
+# frontend/src/lib/api/generated/
+
+###############################################
+# Testing (Vitest, Playwright, coverage)
+###############################################
+coverage/
+.vitest/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+.nyc_output/
+
+###############################################
+# Python / FastAPI
+###############################################
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.nox/
+.tox/
+htmlcov/
+.python-version
+.venv/
+venv/
+env/
+
+# Backend generated models (from OpenAPI)
+# If you prefer committing generated code, remove this line.
+# backend/src/app/generated/  # Temporarily commented to allow Docker builds
+
+###############################################
+# OpenAPI / Redocly outputs
+###############################################
+docs/api/openapi.bundled.yml
+docs/api/index.html
+.openapi-generator/
+
+###############################################
+# AWS / Serverless / Local services
+###############################################
+.aws-sam/
+.serverless/
+.dynamodb/
+.localstack/
+
+# Firebase emulators
+.firebase/
+.emulator-data/
+
+###############################################
+# Environment, OS, editors
+###############################################
+.env*
+!.env.example
+!.env.*.example
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+###############################################
+# Lockfiles policy
+# Keep primary lockfiles; ignore stray ones for other managers.
+###############################################
+package-lock.json
+yarn.lock
+# Keep pnpm and uv lockfiles if present
+!pnpm-lock.yaml
+!uv.lock

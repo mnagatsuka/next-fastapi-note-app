@@ -1,0 +1,16 @@
+type: object
+description: Basic author info for public notes
+properties:
+  id:
+    type: string
+    description: Firebase UID
+  displayName:
+    type: string
+  avatarUrl:
+    type: string
+    format: uri
+    nullable: true
+required:
+  - id
+  - displayName
+

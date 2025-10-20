@@ -1,0 +1,10 @@
+type: object
+description: WebSocket message payload for test messages
+properties:
+  message:
+    type: string
+    description: Test message content
+    example: "Test message content"
+required:
+  - message
+additionalProperties: false

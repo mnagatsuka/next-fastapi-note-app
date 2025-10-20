@@ -1,0 +1,32 @@
+type: object
+properties:
+  success:
+    type: boolean
+    example: true
+  data:
+    type: object
+    properties:
+      comments:
+        type: array
+        items:
+          $ref: ./comment.yml
+        description: List of comments for the note
+      count:
+        type: integer
+        description: Total number of comments
+        example: 5
+      postId:
+        type: string
+        format: uuid
+        description: ID of the note these comments belong to
+    required:
+      - comments
+      - count
+      - postId
+  message:
+    type: string
+    example: "Comments retrieved successfully"
+required:
+  - success
+  - data
+additionalProperties: false

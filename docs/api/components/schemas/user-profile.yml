@@ -1,0 +1,27 @@
+type: object
+description: Basic user profile for regular users
+properties:
+  uid:
+    type: string
+    description: Firebase UID
+  displayName:
+    type: string
+  email:
+    type: string
+    format: email
+    nullable: true
+  avatarUrl:
+    type: string
+    format: uri
+    nullable: true
+  isAnonymous:
+    type: boolean
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+required: [uid, displayName, isAnonymous, createdAt, updatedAt]
+additionalProperties: false
+

@@ -1,0 +1,28 @@
+{
+  "name": "next-fastapi-note-app",
+  "private": true,
+  "packageManager": "pnpm@10.14.0",
+  "scripts": {
+    "serena": "./scripts/serena.sh",
+    "api:lint": "redocly lint docs/api/openapi.yml",
+    "api:bundle": "redocly bundle docs/api/openapi.yml -o docs/api/openapi.bundled.yml --remove-unused-components",
+    "api:be": "pnpm api:bundle && openapi-generator-cli generate -c openapi-generator.config.json",
+    "api:fe": "pnpm api:bundle && orval --config orval.config.ts",
+    "doc:pj": "redocly preview --project-dir=./docs --port=8081",
+    "doc:api": "pnpm api:bundle && pnpm exec redocly build-docs docs/api/openapi.bundled.yml -o docs/api/index.html && open docs/api/index.html",
+    "fb:emu": "firebase emulators:start",
+    "fb:emu:auth": "firebase emulators:start --only auth",
+    "fb:emu:auth:clean": "rimraf ./.emulator-data && firebase emulators:start --only auth --import ./.emulator-data --export-on-exit"
+  },
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.23.1",
+    "@playwright/test": "^1.48.2",
+    "@redocly/cli": "^2.0.8",
+    "firebase-tools": "^13.24.0",
+    "orval": "^7.11.2",
+    "rimraf": "^6.0.1"
+  },
+  "dependencies": {
+    "@orval/msw": "^6.20.0"
+  }
+}

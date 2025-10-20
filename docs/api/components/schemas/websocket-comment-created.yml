@@ -1,0 +1,13 @@
+type: object
+description: WebSocket message payload for comment creation events
+properties:
+  postId:
+    type: string
+    format: uuid
+    description: ID of the note the comment was added to
+  comment:
+    $ref: ./comment.yml
+required:
+  - postId
+  - comment
+additionalProperties: false

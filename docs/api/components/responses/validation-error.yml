@@ -1,0 +1,14 @@
+description: Validation error
+content:
+  application/json:
+    schema:
+      $ref: ../schemas/error-response.yml
+    examples:
+      example:
+        value:
+          status: error
+          error:
+            code: VALIDATION_ERROR
+            message: Invalid request payload
+            field: content
+

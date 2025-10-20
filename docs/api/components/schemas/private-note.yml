@@ -1,0 +1,30 @@
+type: object
+description: Private note entity owned by the authenticated user
+properties:
+  id:
+    type: string
+    format: uuid
+  title:
+    type: string
+    maxLength: 120
+    nullable: true
+  content:
+    type: string
+    description: Plain text content
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+  publishedAt:
+    type: string
+    format: date-time
+    nullable: true
+    description: When the note was published (if public)
+  isPublic:
+    type: boolean
+    description: Whether the note is public or private
+required: [id, content, createdAt, updatedAt, isPublic]
+additionalProperties: false
+

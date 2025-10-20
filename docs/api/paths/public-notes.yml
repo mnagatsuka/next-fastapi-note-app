@@ -1,0 +1,54 @@
+paths:
+  /notes:
+    get:
+      tags: [Public Notes]
+      summary: List latest public notes
+      operationId: getNotes
+      parameters:
+        - $ref: ../components/parameters/page-param.yml
+        - $ref: ../components/parameters/limit-param.yml
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [latest]
+            default: latest
+          description: Sort order (latest only)
+      responses:
+        '200':
+          description: Paginated list of latest public notes
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/public-notes-list-response.yml
+              examples:
+                example:
+                  $ref: ../components/examples/public-notes-list-response.yml
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+  /notes/{id}:
+    get:
+      tags: [Public Notes]
+      summary: Get public note by ID
+      operationId: getNoteById
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: Note ID (UUIDv4)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Public note
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/public-note-response.yml
+              examples:
+                example:
+                  $ref: ../components/examples/public-note-response.yml
+        '404': { $ref: ../components/responses/not-found.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }

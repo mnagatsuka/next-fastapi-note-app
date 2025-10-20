@@ -1,0 +1,137 @@
+services:
+  # =============================================================================
+  # INFRASTRUCTURE SERVICES
+  # =============================================================================
+  
+  # LocalStack service for AWS services emulation
+  # - DynamoDB available at http://localstack:4566
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "4566:4566"
+    env_file:
+      - ./infrastructure/localstack/.env.development
+    volumes:
+      - "./infrastructure/localstack/scripts/init-dynamodb.sh:/etc/localstack/init/ready.d/init-dynamodb.sh"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -s http://localhost:4566 >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Serverless Offline service (WebSocket only)
+  # - WebSocket API exposed at host port 3001
+  serverless:
+    image: node:20-alpine
+    container_name: serverless
+    working_dir: /app/infrastructure/serverless
+    ports:
+      - "3001:3001"
+      - "3002:3000"
+    env_file:
+      - ./infrastructure/serverless/.env.development
+    volumes:
+      - .:/app
+      - node_modules_serverless:/app/infrastructure/serverless/node_modules
+    # Ensure pnpm is available (prefer Corepack, fallback to npm -g)
+    command: >-
+      sh -c "npm i -g pnpm \
+      && pnpm install \
+      && pnpm run dev"
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # =============================================================================
+  # APPLICATION SERVICES  
+  # =============================================================================
+
+  # Backend API service
+  backend:
+    build: 
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env.development
+    volumes:
+      - ./backend:/app/backend
+      - ./backend/pyproject.toml:/app/pyproject.toml
+      - ./backend/uv.lock:/app/uv.lock
+      - /app/.venv
+    networks:
+      - app-network
+    depends_on:
+      localstack:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Frontend Next.js service
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env.development
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/next.config.ts:/app/next.config.ts
+      - node_modules_frontend:/app/node_modules
+      - /app/.next
+    networks:
+      - app-network
+    # depends_on:
+    #   backend:
+    #     condition: service_started
+    restart: unless-stopped
+
+  # Storybook service
+  # storybook:
+  #   build:
+  #     context: .
+  #     dockerfile: ./frontend/Dockerfile
+  #   container_name: storybook
+  #   ports:
+  #     - "6006:6006"
+  #   env_file:
+  #     - ./frontend/.env.development
+  #   volumes:
+  #     - ./frontend/src:/app/src
+  #     - ./frontend/public:/app/public
+  #     - ./frontend/.storybook:/app/.storybook
+  #     - ./frontend/package.json:/app/package.json
+  #     - ./frontend/tsconfig.json:/app/tsconfig.json
+  #     - ./frontend/next.config.ts:/app/next.config.ts
+  #     - ./tsconfig.base.json:/tsconfig.base.json
+  #     - node_modules_frontend:/app/node_modules
+  #     - /app/.next
+  #   command: pnpm storybook -- --host 0.0.0.0
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     frontend:
+  #       condition: service_started
+  #   restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  # Node modules volumes for better performance
+  node_modules_frontend:
+    driver: local
+  node_modules_serverless:
+    driver: local

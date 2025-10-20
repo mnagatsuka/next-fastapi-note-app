@@ -1,0 +1,12 @@
+value:
+  type: "comment.created"
+  data:
+    postId: "550e8400-e29b-41d4-a716-446655440000"
+    comment:
+      id: "123e4567-e89b-12d3-a456-426614174000"
+      content: "This is a new comment that just got posted!"
+      username: "alice@example.com"
+      createdAt: "2024-01-15T12:00:00Z"
+      updatedAt: "2024-01-15T12:00:00Z"
+      postId: "550e8400-e29b-41d4-a716-446655440000"
+  timestamp: "2024-01-15T12:00:00Z"

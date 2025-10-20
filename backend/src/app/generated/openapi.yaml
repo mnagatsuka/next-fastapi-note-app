@@ -1,0 +1,1849 @@
+openapi: 3.0.3
+info:
+  description: |
+    Public-first API for browsing latest public notes and managing a personal
+    notebook of plain text notes (for anonymous and regular users). Authentication
+    is via Firebase ID tokens passed as `Authorization: Bearer <token>`.
+
+    ## Real-time Features
+    This API includes WebSocket integration for real-time comment notifications.
+    When comments are posted, they are automatically broadcasted to all connected
+    WebSocket clients for live updates.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: Simple Note Application API
+  version: 1.0.0
+servers:
+- description: Production (placeholder)
+  url: https://api.myapp.test
+- description: Staging (placeholder)
+  url: https://staging-api.myapp.test
+tags:
+- description: Browse latest public notes (no auth)
+  name: Public Notes
+- description: "Manage private plain text notes (auth: anonymous or regular)"
+  name: Personal Notebook
+- description: Comment system with real-time WebSocket integration
+  name: Comments
+- description: WebSocket connection management and real-time messaging
+  name: WebSocket
+- description: "Manage basic user profile (auth: regular users only)"
+  name: User Profile
+- description: Auth bridge endpoints with Firebase
+  name: Authentication
+paths:
+  /notes:
+    get:
+      operationId: getNotes
+      parameters:
+      - description: Page number for pagination
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+        style: form
+      - description: Number of items per page
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 100
+          minimum: 1
+          type: integer
+        style: form
+      - description: Sort order (latest only)
+        explode: true
+        in: query
+        name: sort
+        required: false
+        schema:
+          default: latest
+          enum:
+          - latest
+          type: string
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                example:
+                  $ref: "#/components/examples/public-notes-list-response"
+              schema:
+                $ref: "#/components/schemas/public-notes-list-response"
+          description: Paginated list of latest public notes
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      summary: List latest public notes
+      tags:
+      - Public Notes
+  /notes/{id}:
+    get:
+      operationId: getNoteById
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              examples:
+                example:
+                  $ref: "#/components/examples/public-note-response"
+              schema:
+                $ref: "#/components/schemas/public-note-response"
+          description: Public note
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      summary: Get public note by ID
+      tags:
+      - Public Notes
+  /notes/{id}/comments:
+    get:
+      operationId: getPublicNoteComments
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/comments-list-response"
+          description: List of comments for the note
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      summary: Get comments for a public note
+      tags:
+      - Comments
+    post:
+      description: |
+        Creates a new comment on a public note. Requires authentication.
+        Automatically broadcasts the new comment to all connected WebSocket clients.
+      operationId: createPublicNoteComment
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/createPublicNoteComment_request"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/comment-response"
+          description: Comment created successfully
+        "400":
+          $ref: "#/components/responses/validation-error"
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Create a comment on a public note
+      tags:
+      - Comments
+  /me/notes:
+    get:
+      operationId: getMyNotes
+      parameters:
+      - description: Page number for pagination
+        explode: true
+        in: query
+        name: page
+        required: false
+        schema:
+          default: 1
+          minimum: 1
+          type: integer
+        style: form
+      - description: Number of items per page
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          default: 20
+          maximum: 100
+          minimum: 1
+          type: integer
+        style: form
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/private-notes-list-response"
+          description: Paginated list of user's private notes
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: List my private notes
+      tags:
+      - Personal Notebook
+    post:
+      operationId: createMyNote
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/createMyNote_request"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/private-note-response"
+          description: Note created
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Create a new private note
+      tags:
+      - Personal Notebook
+  /me/notes/{id}:
+    delete:
+      operationId: deleteMyNote
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/delete-note-response"
+          description: Note deleted
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Delete my private note
+      tags:
+      - Personal Notebook
+    get:
+      operationId: getMyNoteById
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/private-note-response"
+          description: Private note
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Get my private note by ID
+      tags:
+      - Personal Notebook
+    patch:
+      operationId: updateMyNote
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/updateMyNote_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/private-note-response"
+          description: Updated note
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Update my private note
+      tags:
+      - Personal Notebook
+  /me/notes/{id}/comments:
+    get:
+      operationId: getPrivateNoteComments
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/comments-list-response"
+          description: List of comments for the private note
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Get comments for my private note
+      tags:
+      - Comments
+    post:
+      description: |
+        Creates a new comment on a private note owned by the authenticated user.
+        Automatically broadcasts the new comment to all connected WebSocket clients.
+      operationId: createPrivateNoteComment
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/createPublicNoteComment_request"
+        required: true
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/comment-response"
+          description: Comment created successfully
+        "400":
+          $ref: "#/components/responses/validation-error"
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Create a comment on my private note
+      tags:
+      - Comments
+  /me/notes/{id}/publish:
+    post:
+      operationId: publishNote
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/private-note-response"
+          description: Note published successfully
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Make note public (publish)
+      tags:
+      - Personal Notebook
+  /me/notes/{id}/unpublish:
+    post:
+      operationId: unpublishNote
+      parameters:
+      - description: Note ID (UUIDv4)
+        explode: false
+        in: path
+        name: id
+        required: true
+        schema:
+          format: uuid
+          type: string
+        style: simple
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/private-note-response"
+          description: Note unpublished successfully
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "404":
+          $ref: "#/components/responses/not-found"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Make note private (unpublish)
+      tags:
+      - Personal Notebook
+  /websocket/connect:
+    post:
+      description: |
+        Internal endpoint for handling WebSocket connection events.
+        This endpoint is triggered automatically by the WebSocket infrastructure
+        when clients establish connections.
+      operationId: websocketConnect
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/websocketConnect_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/websocketConnect_200_response"
+          description: Connection established successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/websocketConnect_400_response"
+          description: Bad request - invalid connection data
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/websocketConnect_500_response"
+          description: Connection failed
+      summary: WebSocket connection handler
+      tags:
+      - WebSocket
+  /websocket/disconnect:
+    post:
+      description: |
+        Internal endpoint for handling WebSocket disconnection events.
+        This endpoint is triggered automatically by the WebSocket infrastructure
+        when clients disconnect.
+      operationId: websocketDisconnect
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/websocketDisconnect_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/websocketDisconnect_200_response"
+          description: Disconnection handled successfully
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/websocketConnect_400_response"
+          description: Bad request - invalid disconnection data
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/websocketConnect_500_response"
+          description: Disconnection handling failed
+      summary: WebSocket disconnection handler
+      tags:
+      - WebSocket
+  /websocket/connections:
+    get:
+      description: |
+        Health check endpoint that returns the current number of active
+        WebSocket connections. Used for monitoring and debugging.
+      operationId: getWebSocketConnections
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/getWebSocketConnections_200_response"
+          description: Connection count retrieved successfully
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "500":
+          description: Failed to retrieve connection count
+      security:
+      - BearerAuth: []
+      summary: Get WebSocket connection count
+      tags:
+      - WebSocket
+  /me:
+    get:
+      operationId: getUserProfile
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/user-profile-response"
+          description: User profile
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - User Profile
+    patch:
+      operationId: updateUserProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/updateUserProfile_request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/user-profile-response"
+          description: Updated profile
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - User Profile
+  /auth/anonymous-login:
+    post:
+      operationId: authenticateAnonymous
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/auth-result-response"
+          description: Anonymous session validated; user ensured in DB
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Authenticate anonymous user (validate Firebase anonymous token)
+      tags:
+      - Authentication
+  /auth/login:
+    get:
+      operationId: loginRegularUser
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/auth-result-response"
+          description: Regular user session validated (and created if first time)
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+      security:
+      - BearerAuth: []
+      summary: Authenticate regular user (validate Firebase token; may insert user)
+      tags:
+      - Authentication
+  /auth/anonymous-promote:
+    post:
+      operationId: promoteAnonymousUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/anonymous-promote-request"
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/auth-result-response"
+          description: Anonymous account promoted to regular user
+        "401":
+          $ref: "#/components/responses/unauthorized"
+        "403":
+          $ref: "#/components/responses/forbidden"
+        "422":
+          $ref: "#/components/responses/validation-error"
+      security:
+      - BearerAuth: []
+      summary: Promote anonymous user to regular account
+      tags:
+      - Authentication
+components:
+  examples:
+    public-notes-list-response:
+      summary: Example list of latest public notes
+      value:
+        status: success
+        data:
+          notes:
+          - id: 550e8400-e29b-41d4-a716-446655440000
+            title: Hello World
+            content: |
+              This is a simple public note in plain text.
+            author:
+              id: user_ABC123
+              displayName: Alice
+              avatarUrl: https://example.com/avatars/alice.png
+            createdAt: 2025-01-01T12:00:00Z
+            updatedAt: 2025-01-02T08:30:00Z
+            publishedAt: 2025-01-02T08:30:00Z
+          pagination:
+            page: 1
+            limit: 12
+            total: 57
+            hasNext: true
+            hasPrev: false
+    public-note-response:
+      summary: Example single public note response
+      value:
+        status: success
+        data:
+          id: 550e8400-e29b-41d4-a716-446655440000
+          title: Hello World
+          content: |
+            This is a simple public note in plain text.
+          author:
+            id: user_ABC123
+            displayName: Alice
+            avatarUrl: https://example.com/avatars/alice.png
+          createdAt: 2025-01-01T12:00:00Z
+          updatedAt: 2025-01-02T08:30:00Z
+          publishedAt: 2025-01-02T08:30:00Z
+  parameters:
+    page-param:
+      description: Page number for pagination
+      explode: true
+      in: query
+      name: page
+      required: false
+      schema:
+        default: 1
+        minimum: 1
+        type: integer
+      style: form
+    limit-param:
+      description: Number of items per page
+      explode: true
+      in: query
+      name: limit
+      required: false
+      schema:
+        default: 20
+        maximum: 100
+        minimum: 1
+        type: integer
+      style: form
+  responses:
+    unauthorized:
+      content:
+        application/json:
+          examples:
+            example:
+              value:
+                status: error
+                error:
+                  code: UNAUTHORIZED
+                  message: Missing or invalid token
+          schema:
+            $ref: "#/components/schemas/error-response"
+      description: Unauthorized
+    forbidden:
+      content:
+        application/json:
+          examples:
+            example:
+              value:
+                status: error
+                error:
+                  code: FORBIDDEN
+                  message: Insufficient permissions
+          schema:
+            $ref: "#/components/schemas/error-response"
+      description: Forbidden
+    validation-error:
+      content:
+        application/json:
+          examples:
+            example:
+              value:
+                status: error
+                error:
+                  code: VALIDATION_ERROR
+                  message: Invalid request payload
+                  field: content
+          schema:
+            $ref: "#/components/schemas/error-response"
+      description: Validation error
+    not-found:
+      content:
+        application/json:
+          examples:
+            example:
+              value:
+                status: error
+                error:
+                  code: NOT_FOUND
+                  message: Resource not found
+          schema:
+            $ref: "#/components/schemas/error-response"
+      description: Not Found
+  schemas:
+    author:
+      description: Basic author info for public notes
+      example:
+        avatarUrl: https://openapi-generator.tech
+        displayName: displayName
+        id: id
+      properties:
+        id:
+          description: Firebase UID
+          title: id
+          type: string
+        displayName:
+          title: displayName
+          type: string
+        avatarUrl:
+          format: uri
+          nullable: true
+          title: avatarUrl
+          type: string
+      required:
+      - displayName
+      - id
+      title: author
+      type: object
+    public-note:
+      additionalProperties: false
+      description: Public note entity (includes full content for detail view)
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        publishedAt: 2000-01-23T04:56:07.000+00:00
+        author:
+          avatarUrl: https://openapi-generator.tech
+          displayName: displayName
+          id: id
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        title: title
+        content: content
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        id:
+          format: uuid
+          title: id
+          type: string
+        title:
+          maxLength: 120
+          title: title
+          type: string
+        content:
+          description: Plain text content
+          title: content
+          type: string
+        author:
+          $ref: "#/components/schemas/author"
+        createdAt:
+          format: date-time
+          title: createdAt
+          type: string
+        updatedAt:
+          format: date-time
+          title: updatedAt
+          type: string
+        publishedAt:
+          format: date-time
+          title: publishedAt
+          type: string
+      required:
+      - author
+      - content
+      - createdAt
+      - id
+      - publishedAt
+      - title
+      - updatedAt
+      title: public-note
+      type: object
+    pagination:
+      additionalProperties: false
+      description: Pagination metadata
+      example:
+        total: 0
+        hasPrev: true
+        limit: 60
+        hasNext: true
+        page: 1
+      properties:
+        page:
+          minimum: 1
+          title: page
+          type: integer
+        limit:
+          maximum: 100
+          minimum: 1
+          title: limit
+          type: integer
+        total:
+          minimum: 0
+          title: total
+          type: integer
+        hasNext:
+          title: hasNext
+          type: boolean
+        hasPrev:
+          title: hasPrev
+          type: boolean
+      required:
+      - hasNext
+      - hasPrev
+      - limit
+      - page
+      - total
+      title: pagination
+      type: object
+    public-notes-list-response:
+      additionalProperties: false
+      example:
+        data:
+          notes:
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            publishedAt: 2000-01-23T04:56:07.000+00:00
+            author:
+              avatarUrl: https://openapi-generator.tech
+              displayName: displayName
+              id: id
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            title: title
+            content: content
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            publishedAt: 2000-01-23T04:56:07.000+00:00
+            author:
+              avatarUrl: https://openapi-generator.tech
+              displayName: displayName
+              id: id
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            title: title
+            content: content
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          pagination:
+            total: 0
+            hasPrev: true
+            limit: 60
+            hasNext: true
+            page: 1
+        status: success
+      properties:
+        status:
+          enum:
+          - success
+          title: status
+          type: string
+        data:
+          $ref: "#/components/schemas/public_notes_list_response_data"
+      required:
+      - data
+      - status
+      title: public-notes-list-response
+      type: object
+    error-response:
+      additionalProperties: false
+      description: Standard error wrapper
+      example:
+        error:
+          code: code
+          field: field
+          message: message
+        status: error
+      properties:
+        status:
+          enum:
+          - error
+          title: status
+          type: string
+        error:
+          $ref: "#/components/schemas/error_response_error"
+      required:
+      - error
+      - status
+      title: error-response
+      type: object
+    public-note-response:
+      additionalProperties: false
+      example:
+        data:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          author:
+            avatarUrl: https://openapi-generator.tech
+            displayName: displayName
+            id: id
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          title: title
+          content: content
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        status: success
+      properties:
+        status:
+          enum:
+          - success
+          title: status
+          type: string
+        data:
+          $ref: "#/components/schemas/public-note"
+      required:
+      - data
+      - status
+      title: public-note-response
+      type: object
+    comment:
+      additionalProperties: false
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        postId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        content: content
+        username: username
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        id:
+          description: Unique comment identifier
+          format: uuid
+          title: id
+          type: string
+        content:
+          description: Comment text content
+          maxLength: 1000
+          minLength: 1
+          title: content
+          type: string
+        username:
+          description: Display name or email of the comment author
+          title: username
+          type: string
+        createdAt:
+          description: Comment creation timestamp
+          format: date-time
+          title: createdAt
+          type: string
+        updatedAt:
+          description: Comment last update timestamp
+          format: date-time
+          title: updatedAt
+          type: string
+        postId:
+          description: ID of the note this comment belongs to
+          format: uuid
+          title: postId
+          type: string
+      required:
+      - content
+      - createdAt
+      - id
+      - postId
+      - updatedAt
+      - username
+      title: comment
+      type: object
+    comments-list-response:
+      additionalProperties: false
+      example:
+        data:
+          comments:
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            postId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            content: content
+            username: username
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            postId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            content: content
+            username: username
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          count: 5
+          postId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        success: true
+        message: Comments retrieved successfully
+      properties:
+        success:
+          example: true
+          title: success
+          type: boolean
+        data:
+          $ref: "#/components/schemas/comments_list_response_data"
+        message:
+          example: Comments retrieved successfully
+          title: message
+          type: string
+      required:
+      - data
+      - success
+      title: comments-list-response
+      type: object
+    comment-response:
+      additionalProperties: false
+      example:
+        data:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          postId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          content: content
+          username: username
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        success: true
+        message: Comment created successfully
+      properties:
+        success:
+          example: true
+          title: success
+          type: boolean
+        data:
+          $ref: "#/components/schemas/comment"
+        message:
+          example: Comment created successfully
+          title: message
+          type: string
+      required:
+      - data
+      - success
+      title: comment-response
+      type: object
+    private-note:
+      additionalProperties: false
+      description: Private note entity owned by the authenticated user
+      example:
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        publishedAt: 2000-01-23T04:56:07.000+00:00
+        isPublic: true
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        title: title
+        content: content
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        id:
+          format: uuid
+          title: id
+          type: string
+        title:
+          maxLength: 120
+          nullable: true
+          title: title
+          type: string
+        content:
+          description: Plain text content
+          title: content
+          type: string
+        createdAt:
+          format: date-time
+          title: createdAt
+          type: string
+        updatedAt:
+          format: date-time
+          title: updatedAt
+          type: string
+        publishedAt:
+          description: When the note was published (if public)
+          format: date-time
+          nullable: true
+          title: publishedAt
+          type: string
+        isPublic:
+          description: Whether the note is public or private
+          title: isPublic
+          type: boolean
+      required:
+      - content
+      - createdAt
+      - id
+      - isPublic
+      - updatedAt
+      title: private-note
+      type: object
+    private-notes-list-response:
+      additionalProperties: false
+      example:
+        data:
+          notes:
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            publishedAt: 2000-01-23T04:56:07.000+00:00
+            isPublic: true
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            title: title
+            content: content
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          - createdAt: 2000-01-23T04:56:07.000+00:00
+            publishedAt: 2000-01-23T04:56:07.000+00:00
+            isPublic: true
+            id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+            title: title
+            content: content
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          pagination:
+            total: 0
+            hasPrev: true
+            limit: 60
+            hasNext: true
+            page: 1
+        status: success
+      properties:
+        status:
+          enum:
+          - success
+          title: status
+          type: string
+        data:
+          $ref: "#/components/schemas/private_notes_list_response_data"
+      required:
+      - data
+      - status
+      title: private-notes-list-response
+      type: object
+    private-note-response:
+      additionalProperties: false
+      example:
+        data:
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          isPublic: true
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          title: title
+          content: content
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        status: success
+      properties:
+        status:
+          enum:
+          - success
+          title: status
+          type: string
+        data:
+          $ref: "#/components/schemas/private-note"
+      required:
+      - data
+      - status
+      title: private-note-response
+      type: object
+    delete-note-response:
+      additionalProperties: false
+      example:
+        data:
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+        status: success
+      properties:
+        status:
+          enum:
+          - success
+          title: status
+          type: string
+        data:
+          $ref: "#/components/schemas/delete_note_response_data"
+      required:
+      - data
+      - status
+      title: delete-note-response
+      type: object
+    user-profile:
+      additionalProperties: false
+      description: Basic user profile for regular users
+      example:
+        uid: uid
+        createdAt: 2000-01-23T04:56:07.000+00:00
+        isAnonymous: true
+        avatarUrl: https://openapi-generator.tech
+        displayName: displayName
+        email: email
+        updatedAt: 2000-01-23T04:56:07.000+00:00
+      properties:
+        uid:
+          description: Firebase UID
+          title: uid
+          type: string
+        displayName:
+          title: displayName
+          type: string
+        email:
+          format: email
+          nullable: true
+          title: email
+          type: string
+        avatarUrl:
+          format: uri
+          nullable: true
+          title: avatarUrl
+          type: string
+        isAnonymous:
+          title: isAnonymous
+          type: boolean
+        createdAt:
+          format: date-time
+          title: createdAt
+          type: string
+        updatedAt:
+          format: date-time
+          title: updatedAt
+          type: string
+      required:
+      - createdAt
+      - displayName
+      - isAnonymous
+      - uid
+      - updatedAt
+      title: user-profile
+      type: object
+    user-profile-response:
+      additionalProperties: false
+      example:
+        data:
+          uid: uid
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          isAnonymous: true
+          avatarUrl: https://openapi-generator.tech
+          displayName: displayName
+          email: email
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        status: success
+      properties:
+        status:
+          enum:
+          - success
+          title: status
+          type: string
+        data:
+          $ref: "#/components/schemas/user-profile"
+      required:
+      - data
+      - status
+      title: user-profile-response
+      type: object
+    auth-result-response:
+      additionalProperties: false
+      example:
+        data:
+          isAnonymous: true
+          created: true
+          user:
+            uid: uid
+            createdAt: 2000-01-23T04:56:07.000+00:00
+            isAnonymous: true
+            avatarUrl: https://openapi-generator.tech
+            displayName: displayName
+            email: email
+            updatedAt: 2000-01-23T04:56:07.000+00:00
+          wasPromoted: true
+        status: success
+      properties:
+        status:
+          enum:
+          - success
+          title: status
+          type: string
+        data:
+          $ref: "#/components/schemas/auth_result_response_data"
+      required:
+      - data
+      - status
+      title: auth-result-response
+      type: object
+    anonymous-promote-request:
+      additionalProperties: false
+      properties:
+        anonymous_firebase_uuid:
+          description: The Firebase UID of the anonymous user to be promoted
+          format: uuid
+          title: anonymous_firebase_uuid
+          type: string
+      required:
+      - anonymous_firebase_uuid
+      title: anonymous-promote-request
+      type: object
+    websocket-comment-created:
+      additionalProperties: false
+      description: WebSocket message payload for comment creation events
+      properties:
+        postId:
+          description: ID of the note the comment was added to
+          format: uuid
+          title: postId
+          type: string
+        comment:
+          $ref: "#/components/schemas/comment"
+      required:
+      - comment
+      - postId
+      title: websocket-comment-created
+      type: object
+    websocket-comments-list:
+      additionalProperties: false
+      description: WebSocket message payload for comments list updates
+      properties:
+        postId:
+          description: ID of the note these comments belong to
+          format: uuid
+          title: postId
+          type: string
+        comments:
+          description: Complete list of comments for the note
+          items:
+            $ref: "#/components/schemas/comment"
+          title: comments
+          type: array
+        count:
+          description: Total number of comments
+          example: 5
+          title: count
+          type: integer
+      required:
+      - comments
+      - count
+      - postId
+      title: websocket-comments-list
+      type: object
+    websocket-test-message:
+      additionalProperties: false
+      description: WebSocket message payload for test messages
+      properties:
+        message:
+          description: Test message content
+          example: Test message content
+          title: message
+          type: string
+      required:
+      - message
+      title: websocket-test-message
+      type: object
+    websocket-message:
+      additionalProperties: false
+      properties:
+        type:
+          description: Type of WebSocket message
+          enum:
+          - comment.created
+          - comments.list
+          - test
+          type: string
+        data:
+          $ref: "#/components/schemas/websocket_message_data"
+        timestamp:
+          description: Server timestamp when message was sent
+          format: date-time
+          type: string
+      required:
+      - data
+      - timestamp
+      - type
+      type: object
+    createPublicNoteComment_request:
+      additionalProperties: false
+      properties:
+        content:
+          description: Comment text content
+          maxLength: 1000
+          minLength: 1
+          title: content
+          type: string
+      required:
+      - content
+      title: createPublicNoteComment_request
+      type: object
+    createMyNote_request:
+      additionalProperties: false
+      properties:
+        title:
+          description: Optional title for the note
+          maxLength: 120
+          title: title
+          type: string
+        content:
+          description: Plain text content
+          title: content
+          type: string
+      title: createMyNote_request
+      type: object
+    updateMyNote_request:
+      additionalProperties: false
+      properties:
+        title:
+          maxLength: 120
+          title: title
+          type: string
+        content:
+          title: content
+          type: string
+      title: updateMyNote_request
+      type: object
+    websocketConnect_request_requestContext:
+      properties:
+        connectionId:
+          description: WebSocket connection ID
+          title: connectionId
+          type: string
+        routeKey:
+          enum:
+          - $connect
+          title: routeKey
+          type: string
+      required:
+      - connectionId
+      - routeKey
+      title: websocketConnect_request_requestContext
+      type: object
+    websocketConnect_request:
+      additionalProperties: true
+      properties:
+        requestContext:
+          $ref: "#/components/schemas/websocketConnect_request_requestContext"
+      required:
+      - requestContext
+      title: websocketConnect_request
+      type: object
+    websocketConnect_200_response:
+      example:
+        body: Connected
+        statusCode: 200
+      properties:
+        statusCode:
+          example: 200
+          title: statusCode
+          type: integer
+        body:
+          example: Connected
+          title: body
+          type: string
+      title: websocketConnect_200_response
+      type: object
+    websocketConnect_400_response:
+      example:
+        body: Bad Request
+        statusCode: 400
+      properties:
+        statusCode:
+          example: 400
+          title: statusCode
+          type: integer
+        body:
+          example: Bad Request
+          title: body
+          type: string
+      title: websocketConnect_400_response
+      type: object
+    websocketConnect_500_response:
+      example:
+        body: Internal Server Error
+        statusCode: 500
+      properties:
+        statusCode:
+          example: 500
+          title: statusCode
+          type: integer
+        body:
+          example: Internal Server Error
+          title: body
+          type: string
+      title: websocketConnect_500_response
+      type: object
+    websocketDisconnect_request_requestContext:
+      properties:
+        connectionId:
+          description: WebSocket connection ID
+          title: connectionId
+          type: string
+        routeKey:
+          enum:
+          - $disconnect
+          title: routeKey
+          type: string
+      required:
+      - connectionId
+      - routeKey
+      title: websocketDisconnect_request_requestContext
+      type: object
+    websocketDisconnect_request:
+      additionalProperties: true
+      properties:
+        requestContext:
+          $ref: "#/components/schemas/websocketDisconnect_request_requestContext"
+      required:
+      - requestContext
+      title: websocketDisconnect_request
+      type: object
+    websocketDisconnect_200_response:
+      example:
+        body: Disconnected
+        statusCode: 200
+      properties:
+        statusCode:
+          example: 200
+          title: statusCode
+          type: integer
+        body:
+          example: Disconnected
+          title: body
+          type: string
+      title: websocketDisconnect_200_response
+      type: object
+    getWebSocketConnections_200_response:
+      example:
+        connectionCount: 42
+        timestamp: 2000-01-23T04:56:07.000+00:00
+      properties:
+        connectionCount:
+          description: Number of active WebSocket connections
+          example: 42
+          title: connectionCount
+          type: integer
+        timestamp:
+          description: Current server timestamp
+          format: date-time
+          title: timestamp
+          type: string
+      title: getWebSocketConnections_200_response
+      type: object
+    updateUserProfile_request:
+      additionalProperties: false
+      properties:
+        displayName:
+          maxLength: 60
+          title: displayName
+          type: string
+        email:
+          format: email
+          title: email
+          type: string
+        avatarUrl:
+          format: uri
+          title: avatarUrl
+          type: string
+      title: updateUserProfile_request
+      type: object
+    public_notes_list_response_data:
+      example:
+        notes:
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          author:
+            avatarUrl: https://openapi-generator.tech
+            displayName: displayName
+            id: id
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          title: title
+          content: content
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          author:
+            avatarUrl: https://openapi-generator.tech
+            displayName: displayName
+            id: id
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          title: title
+          content: content
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        pagination:
+          total: 0
+          hasPrev: true
+          limit: 60
+          hasNext: true
+          page: 1
+      properties:
+        notes:
+          items:
+            $ref: "#/components/schemas/public-note"
+          title: notes
+          type: array
+        pagination:
+          $ref: "#/components/schemas/pagination"
+      required:
+      - notes
+      - pagination
+      title: public_notes_list_response_data
+      type: object
+    error_response_error:
+      example:
+        code: code
+        field: field
+        message: message
+      properties:
+        code:
+          title: code
+          type: string
+        message:
+          title: message
+          type: string
+        field:
+          nullable: true
+          title: field
+          type: string
+      required:
+      - code
+      - message
+      title: error_response_error
+      type: object
+    comments_list_response_data:
+      example:
+        comments:
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          postId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          content: content
+          username: username
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          postId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          content: content
+          username: username
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        count: 5
+        postId: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        comments:
+          description: List of comments for the note
+          items:
+            $ref: "#/components/schemas/comment"
+          title: comments
+          type: array
+        count:
+          description: Total number of comments
+          example: 5
+          title: count
+          type: integer
+        postId:
+          description: ID of the note these comments belong to
+          format: uuid
+          title: postId
+          type: string
+      required:
+      - comments
+      - count
+      - postId
+      title: comments_list_response_data
+      type: object
+    private_notes_list_response_data:
+      example:
+        notes:
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          isPublic: true
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          title: title
+          content: content
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        - createdAt: 2000-01-23T04:56:07.000+00:00
+          publishedAt: 2000-01-23T04:56:07.000+00:00
+          isPublic: true
+          id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+          title: title
+          content: content
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        pagination:
+          total: 0
+          hasPrev: true
+          limit: 60
+          hasNext: true
+          page: 1
+      properties:
+        notes:
+          items:
+            $ref: "#/components/schemas/private-note"
+          title: notes
+          type: array
+        pagination:
+          $ref: "#/components/schemas/pagination"
+      required:
+      - notes
+      - pagination
+      title: private_notes_list_response_data
+      type: object
+    delete_note_response_data:
+      example:
+        id: 046b6c7f-0b8a-43b9-b35d-6489e6daee91
+      properties:
+        id:
+          format: uuid
+          title: id
+          type: string
+      required:
+      - id
+      title: delete_note_response_data
+      type: object
+    auth_result_response_data:
+      example:
+        isAnonymous: true
+        created: true
+        user:
+          uid: uid
+          createdAt: 2000-01-23T04:56:07.000+00:00
+          isAnonymous: true
+          avatarUrl: https://openapi-generator.tech
+          displayName: displayName
+          email: email
+          updatedAt: 2000-01-23T04:56:07.000+00:00
+        wasPromoted: true
+      properties:
+        user:
+          $ref: "#/components/schemas/user-profile"
+        isAnonymous:
+          title: isAnonymous
+          type: boolean
+        created:
+          description: Indicates if a new DB user record was created during auth
+          title: created
+          type: boolean
+        wasPromoted:
+          description: Indicates if an anonymous account was promoted
+          title: wasPromoted
+          type: boolean
+      required:
+      - user
+      title: auth_result_response_data
+      type: object
+    websocket_message_data:
+      description: Message payload that varies based on type
+      oneOf:
+      - $ref: "#/components/schemas/websocket-comment-created"
+      - $ref: "#/components/schemas/websocket-comments-list"
+      - $ref: "#/components/schemas/websocket-test-message"
+      title: websocket_message_data
+  securitySchemes:
+    BearerAuth:
+      bearerFormat: JWT
+      description: "Firebase ID token in `Authorization: Bearer <token>` header"
+      scheme: bearer
+      type: http

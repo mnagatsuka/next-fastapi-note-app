@@ -1,0 +1,10 @@
+type: object
+properties:
+  status:
+    type: string
+    enum: [success]
+  data:
+    $ref: ./public-note.yml
+required: [status, data]
+additionalProperties: false
+

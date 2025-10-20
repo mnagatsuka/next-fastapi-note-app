@@ -1,0 +1,51 @@
+paths:
+  /me:
+    get:
+      tags: [User Profile]
+      summary: Get user profile
+      operationId: getUserProfile
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/user-profile-response.yml
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+    patch:
+      tags: [User Profile]
+      summary: Update user profile
+      operationId: updateUserProfile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                  maxLength: 60
+                email:
+                  type: string
+                  format: email
+                avatarUrl:
+                  type: string
+                  format: uri
+              additionalProperties: false
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: ../components/schemas/user-profile-response.yml
+        '401': { $ref: ../components/responses/unauthorized.yml }
+        '403': { $ref: ../components/responses/forbidden.yml }
+        '422': { $ref: ../components/responses/validation-error.yml }
+

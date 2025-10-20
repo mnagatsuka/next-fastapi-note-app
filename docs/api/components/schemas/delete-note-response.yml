@@ -1,0 +1,15 @@
+type: object
+properties:
+  status:
+    type: string
+    enum: [success]
+  data:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+    required: [id]
+required: [status, data]
+additionalProperties: false
+

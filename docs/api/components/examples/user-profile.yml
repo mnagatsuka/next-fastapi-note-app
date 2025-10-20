@@ -1,0 +1,8 @@
+uid: user_ABC123
+displayName: Alice
+email: alice@example.com
+avatarUrl: https://example.com/avatars/alice.png
+isAnonymous: false
+createdAt: 2024-12-20T09:00:00Z
+updatedAt: 2025-01-02T08:30:00Z
+

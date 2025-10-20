@@ -1,0 +1,34 @@
+type: object
+properties:
+  id:
+    type: string
+    format: uuid
+    description: Unique comment identifier
+  content:
+    type: string
+    description: Comment text content
+    minLength: 1
+    maxLength: 1000
+  username:
+    type: string
+    description: Display name or email of the comment author
+  createdAt:
+    type: string
+    format: date-time
+    description: Comment creation timestamp
+  updatedAt:
+    type: string
+    format: date-time
+    description: Comment last update timestamp
+  postId:
+    type: string
+    format: uuid
+    description: ID of the note this comment belongs to
+required:
+  - id
+  - content
+  - username
+  - createdAt
+  - updatedAt
+  - postId
+additionalProperties: false

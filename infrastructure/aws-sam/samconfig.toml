@@ -1,0 +1,101 @@
+# SAM Configuration for Next FastAPI Note App
+# 
+# SECURITY NOTE: This file uses placeholder values for production.
+# Copy to samconfig.development.toml and replace placeholders for actual deployment.
+#
+version = 0.1
+
+[default.global.parameters]
+stack_name = "next-fastapi-note-app"
+
+[default.build.parameters]
+cached = true
+parallel = true
+use_container = false
+
+[default.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+resolve_s3 = true
+resolve_image_repos = true
+region = "ap-northeast-1"
+disable_rollback = false
+fail_on_empty_changeset = false
+
+[default.local_start_api.parameters]
+warm_containers = "EAGER"
+
+[default.local_start_lambda.parameters]
+warm_containers = "EAGER"
+
+
+# =============================================================================
+# DEVELOPMENT ENVIRONMENT (Safe to commit) (Local Only)
+# =============================================================================
+[development.global.parameters]
+stack_name = "next-fastapi-note-app-development"
+
+[development.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+resolve_s3 = true
+resolve_image_repos = true
+region = "ap-northeast-1"
+parameter_overrides = [
+    "Environment=development",
+    # https://<branch名>--<プロジェクト名>.vercel.app / https://<デプロイ固有のID>-<プロジェクト名>.vercel.app
+    # e.g. https://feature-login--myapp.vercel.app / https://abc12345-myapp.vercel.app
+    "AllowedOrigins=http://localhost:3000",
+    "FirebaseProjectId=next-fastapi-note-app"
+]
+tags = [
+    "Environment=development",
+    "Project=next-fastapi-note-app"
+]
+
+# =============================================================================
+# STAGING ENVIRONMENT (Update FirebaseProjectId before deployment)
+# =============================================================================
+[staging.global.parameters]
+stack_name = "next-fastapi-note-app-staging"
+
+[staging.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = false
+resolve_s3 = true
+resolve_image_repos = true
+region = "ap-northeast-1"
+parameter_overrides = [
+    "Environment=staging",
+    # Function URL CORS is permissive; keep '*' unless you need to restrict.
+    "AllowedOrigins=*",
+    "FirebaseProjectId=next-fastapi-note-app"
+]
+tags = [
+    "Environment=staging",
+    "Project=next-fastapi-note-app"
+]
+
+# =============================================================================
+# PRODUCTION ENVIRONMENT (SECURITY: Update all placeholders before deployment)
+# =============================================================================
+[production.global.parameters] 
+stack_name = "next-fastapi-note-app-production"
+
+[production.deploy.parameters]
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true  # Always confirm production changes
+resolve_s3 = true
+resolve_image_repos = true
+region = "ap-northeast-1"
+parameter_overrides = [
+    "Environment=production",
+    # e.g., https://yourdomain.com (comma-separated for multiple origins)
+    "AllowedOrigins=REPLACE_WITH_PRODUCTION_DOMAIN",
+    "FirebaseProjectId=REPLACE_WITH_PRODUCTION_PROJECT_ID"
+]
+tags = [
+    "Environment=production",
+    "Project=next-fastapi-note-app",
+    "CostCenter=Production"
+]

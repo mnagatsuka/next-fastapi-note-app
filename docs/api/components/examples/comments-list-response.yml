@@ -1,0 +1,19 @@
+value:
+  success: true
+  data:
+    postId: "550e8400-e29b-41d4-a716-446655440000"
+    count: 2
+    comments:
+      - id: "123e4567-e89b-12d3-a456-426614174000"
+        content: "This is a great note! Thanks for sharing your insights."
+        username: "john.doe@example.com"
+        createdAt: "2024-01-15T10:30:00Z"
+        updatedAt: "2024-01-15T10:30:00Z"
+        postId: "550e8400-e29b-41d4-a716-446655440000"
+      - id: "987fcdeb-51a2-43d7-8f9e-123456789abc"
+        content: "I completely agree with your points about productivity."
+        username: "Jane Smith"
+        createdAt: "2024-01-15T11:15:00Z"
+        updatedAt: "2024-01-15T11:15:00Z"
+        postId: "550e8400-e29b-41d4-a716-446655440000"
+  message: "Comments retrieved successfully"

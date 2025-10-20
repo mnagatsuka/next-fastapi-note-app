@@ -1,0 +1,133 @@
+openapi: 3.0.3
+info:
+  title: Simple Note Application API
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  description: |
+    Public-first API for browsing latest public notes and managing a personal
+    notebook of plain text notes (for anonymous and regular users). Authentication
+    is via Firebase ID tokens passed as `Authorization: Bearer <token>`.
+    
+    ## Real-time Features
+    This API includes WebSocket integration for real-time comment notifications.
+    When comments are posted, they are automatically broadcasted to all connected
+    WebSocket clients for live updates.
+servers:
+  - url: https://api.myapp.test
+    description: Production (placeholder)
+  - url: https://staging-api.myapp.test
+    description: Staging (placeholder)
+tags:
+  - name: Public Notes
+    description: Browse latest public notes (no auth)
+  - name: Personal Notebook
+    description: 'Manage private plain text notes (auth: anonymous or regular)'
+  - name: Comments
+    description: 'Comment system with real-time WebSocket integration'
+  - name: WebSocket
+    description: 'WebSocket connection management and real-time messaging'
+  - name: User Profile
+    description: 'Manage basic user profile (auth: regular users only)'
+  - name: Authentication
+    description: Auth bridge endpoints with Firebase
+
+# Default: no auth required; secure ops override per-operation
+security: []
+paths:
+  /notes:
+    $ref: './paths/public-notes.yml#/paths/~1notes'
+  /notes/{id}:
+    $ref: './paths/public-notes.yml#/paths/~1notes~1{id}'
+  /notes/{id}/comments:
+    $ref: './paths/comments.yml#/paths/~1notes~1{id}~1comments'
+  /me/notes:
+    $ref: './paths/personal-notebook.yml#/paths/~1me~1notes'
+  /me/notes/{id}:
+    $ref: './paths/personal-notebook.yml#/paths/~1me~1notes~1{id}'
+  /me/notes/{id}/comments:
+    $ref: './paths/comments.yml#/paths/~1me~1notes~1{id}~1comments'
+  /me/notes/{id}/publish:
+    $ref: './paths/personal-notebook.yml#/paths/~1me~1notes~1{id}~1publish'
+  /me/notes/{id}/unpublish:
+    $ref: './paths/personal-notebook.yml#/paths/~1me~1notes~1{id}~1unpublish'
+  /websocket/connect:
+    $ref: './paths/websocket.yml#/paths/~1websocket~1connect'
+  /websocket/disconnect:
+    $ref: './paths/websocket.yml#/paths/~1websocket~1disconnect'
+  /websocket/connections:
+    $ref: './paths/websocket.yml#/paths/~1websocket~1connections'
+  /me:
+    $ref: './paths/user-profile.yml#/paths/~1me'
+  /auth/anonymous-login:
+    $ref: './paths/authentication.yml#/paths/~1auth~1anonymous-login'
+  /auth/login:
+    $ref: './paths/authentication.yml#/paths/~1auth~1login'
+  /auth/anonymous-promote:
+    $ref: './paths/authentication.yml#/paths/~1auth~1anonymous-promote'
+  
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Firebase ID token in `Authorization: Bearer <token>` header'
+  schemas:
+    PublicNote:
+      $ref: './components/schemas/public-note.yml'
+    PrivateNote:
+      $ref: './components/schemas/private-note.yml'
+    Comment:
+      $ref: './components/schemas/comment.yml'
+    UserProfile:
+      $ref: './components/schemas/user-profile.yml'
+    Author:
+      $ref: './components/schemas/author.yml'
+    Pagination:
+      $ref: './components/schemas/pagination.yml'
+    ErrorResponse:
+      $ref: './components/schemas/error-response.yml'
+    PublicNotesListResponse:
+      $ref: './components/schemas/public-notes-list-response.yml'
+    PublicNoteResponse:
+      $ref: './components/schemas/public-note-response.yml'
+    PrivateNotesListResponse:
+      $ref: './components/schemas/private-notes-list-response.yml'
+    PrivateNoteResponse:
+      $ref: './components/schemas/private-note-response.yml'
+    CommentResponse:
+      $ref: './components/schemas/comment-response.yml'
+    CommentsListResponse:
+      $ref: './components/schemas/comments-list-response.yml'
+    WebSocketMessage:
+      $ref: './components/schemas/websocket-message.yml'
+    WebSocketCommentCreated:
+      $ref: './components/schemas/websocket-comment-created.yml'
+    WebSocketCommentsList:
+      $ref: './components/schemas/websocket-comments-list.yml'
+    WebSocketTestMessage:
+      $ref: './components/schemas/websocket-test-message.yml'
+    UserProfileResponse:
+      $ref: './components/schemas/user-profile-response.yml'
+    AuthResultResponse:
+      $ref: './components/schemas/auth-result-response.yml'
+    DeleteNoteResponse:
+      $ref: './components/schemas/delete-note-response.yml'
+    AnonymousPromoteRequest:
+      $ref: './components/schemas/anonymous-promote-request.yml'
+  parameters:
+    PageParam:
+      $ref: './components/parameters/page-param.yml'
+    LimitParam:
+      $ref: './components/parameters/limit-param.yml'
+  responses:
+    Unauthorized:
+      $ref: './components/responses/unauthorized.yml'
+    Forbidden:
+      $ref: './components/responses/forbidden.yml'
+    NotFound:
+      $ref: './components/responses/not-found.yml'
+    ValidationError:
+      $ref: './components/responses/validation-error.yml'
