@@ -13,7 +13,9 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
-    "msw:init": "msw init public --save"
+    "msw:init": "msw init public --save",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.2",
@@ -41,6 +43,11 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@faker-js/faker": "^10.0.0",
+    "@storybook/addon-a11y": "^8.4.7",
+    "@storybook/addon-essentials": "^8.4.7",
+    "@storybook/addon-interactions": "^8.4.7",
+    "@storybook/nextjs": "^8.4.7",
+    "@storybook/react": "^8.4.7",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
@@ -51,6 +58,7 @@
     "@vitest/ui": "^2.1.8",
     "jsdom": "^25.0.1",
     "msw": "^2.11.2",
+    "storybook": "^8.4.7",
     "typescript": "^5.7.2",
     "vercel": "^47.1.4",
     "vitest": "^2.1.8"

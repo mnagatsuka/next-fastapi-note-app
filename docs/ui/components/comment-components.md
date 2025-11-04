@@ -3,7 +3,7 @@
 ## Overview
 Comment system components that enable authenticated users to post comments on both public and private notes. Provides a simple interface showing username and comment content.
 
-## CommentSection
+## CommentsSection
 
 ### Overview
 Container component that manages the entire comment experience for a note, including loading comments, displaying the comment list, and handling the comment form.
@@ -17,7 +17,7 @@ Container component that manages the entire comment experience for a note, inclu
 
 ### Component Structure
 ```typescript
-CommentSection
+CommentsSection
 ├── CommentList (displays existing comments)
 │   └── CommentItem[] (individual comment cards)
 └── CommentForm (posting interface for authenticated users)
@@ -27,7 +27,7 @@ CommentSection
 
 ### Props
 ```typescript
-interface CommentSectionProps {
+interface CommentsSectionProps {
   noteId: string
   isPrivateNote: boolean  // Determines API endpoints to use
   className?: string

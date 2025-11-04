@@ -18,7 +18,8 @@ Purpose: Protect end users by attaching appropriate security headers to response
 | **X-Content-Type-Options**    | Prevent MIME sniffing                   | ✅ Next.js                                | `nosniff`                             |
 | **X-Frame-Options**           | Prevent clickjacking (iframe embedding) | ✅ Next.js (or use CSP `frame-ancestors`) | `DENY`                                |
 | **Referrer-Policy**           | Control referrer information            | ✅ Next.js                                | `strict-origin-when-cross-origin`     |
-| **Content-Security-Policy**   | Restrict script/connection sources      | ✅ Next.js (nonce pattern recommended)    | See sample below                      |
+| **Content-Security-Policy**   | Restrict script/connection sources      | ✅ Next.js (environment-specific)         | See sample below                      |
+| **Permissions-Policy**        | Control browser feature access          | ✅ Next.js (restrictive by default)       | See sample below                      |
 
 
 ## Next.js Implementation Examples
@@ -46,32 +47,86 @@ export default {
 }
 ```
 
-### CSP (nonce pattern)
+### CSP (nonce pattern) + Permissions Policy
 
 ```ts
 // middleware.ts
-import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
+import { type NextRequest, NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const nonce = crypto.randomUUID()
+  const nonce = crypto.randomUUID();
+  const isDev = process.env.NODE_ENV === "development";
+  const isStaging = process.env.APP_ENV === "staging";
+
+  // Different CSP strategies for different environments
+  let scriptSrc = "";
+  if (isDev) {
+    // Development: strict but with eval for HMR
+    scriptSrc = `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'unsafe-eval'`;
+  } else {
+    // Staging/Production: more permissive for Vercel
+    scriptSrc = `script-src 'self' 'unsafe-inline' 'unsafe-eval' https:${isStaging ? " https://vercel.live" : ""}`;
+  }
+
+  const connectSrc = `connect-src 'self' https://firebasestorage.googleapis.com https://firebase.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com${isDev ? " http://localhost:8000 http://localhost:9099 ws://localhost:3001" : ""} ${isStaging || !isDev ? "https://*.lambda-url.ap-northeast-1.on.aws wss://*.execute-api.ap-northeast-1.amazonaws.com wss://ws-us3.pusher.com https://sockjs-us3.pusher.com" : ""}`;
 
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
-    "connect-src 'self' https://api.example.com",
-    "img-src 'self' data:",
+    scriptSrc,
+    connectSrc,
+    `frame-src 'self'${isStaging || !isDev ? " https://vercel.live" : ""}`,
+    "img-src 'self' data: https://firebasestorage.googleapis.com https://lh3.googleusercontent.com",
     "style-src 'self' 'unsafe-inline'", // practical with Tailwind
     "font-src 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
-  ].join('; ')
+  ].join("; ");
 
-  const res = NextResponse.next()
-  res.headers.set('Content-Security-Policy', csp)
-  return res
+  const res = NextResponse.next();
+  res.headers.set("Content-Security-Policy", csp);
+
+  // Permissions Policy - Control browser features
+  const permissionsPolicy = [
+    "camera=()",
+    "microphone=()",
+    "geolocation=()",
+    "fullscreen=(self)",
+    "payment=()",
+    "usb=()",
+    "display-capture=()",
+    "accelerometer=()",
+    "ambient-light-sensor=()",
+    "autoplay=(self)",
+    "battery=()",
+    "gyroscope=()",
+    "magnetometer=()",
+    "midi=()",
+    "picture-in-picture=(self)",
+    "sync-xhr=()",
+    "web-share=(self)",
+  ].join(", ");
+
+  res.headers.set("Permissions-Policy", permissionsPolicy);
+
+  // Store nonce for use in pages
+  res.headers.set("x-nonce", nonce);
+
+  return res;
 }
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+  ],
+};
 ```
 
 
@@ -81,14 +136,15 @@ export function middleware(req: NextRequest) {
 * **nosniff**: Always include to prevent MIME type sniffing.
 * **X-Frame-Options / frame-ancestors**: Protect against clickjacking. Prefer `DENY`. If embedding is required, use CSP `frame-ancestors`.
 * **Referrer-Policy**: Balance privacy and usability. `strict-origin-when-cross-origin` is the standard default.
-* **CSP**: Use the Next.js nonce pattern. Whitelist only the external resources you truly need.
+* **CSP**: Environment-specific approach - strict nonce pattern for development, more permissive for Vercel deployment. Include only the external resources you truly need (Firebase, AWS Lambda, Pusher).
+* **Permissions-Policy**: Restrictive by default, denying access to sensitive browser APIs unless explicitly needed. Allows only essential features like fullscreen, autoplay, picture-in-picture, and web-share.
 
 
 ## Verification
 
 ```bash
-# Frontend
-curl -sI https://your-frontend.vercel.app | grep -iE 'strict|nosniff|frame|referrer|csp'
+# Frontend - Check all security headers
+curl -sI https://your-frontend.vercel.app | grep -iE 'strict|nosniff|frame|referrer|csp|permissions'
 ```
 
 Automated testing with Playwright or similar tools is also recommended.
@@ -100,4 +156,5 @@ Automated testing with Playwright or similar tools is also recommended.
 * **X-Content-Type-Options: nosniff**
 * **Referrer-Policy: strict-origin-when-cross-origin**
 * **X-Frame-Options: DENY** (or CSP `frame-ancestors`)
-* **Content-Security-Policy** (nonce pattern)
+* **Content-Security-Policy** (environment-specific)
+* **Permissions-Policy** (restrictive browser feature control)

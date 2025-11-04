@@ -7,7 +7,7 @@
 - Designed with a responsive, mobile-first approach optimized for reading and in-place editing.
 - Features touch-friendly interactions and enhanced keyboard support for desktop.
 - **Client-Side Rendering (CSR)** for real-time interactivity and personalized experience.
-- Dark mode only in phase 1 - no light mode theme switching available.
+- Single theme design (no light/dark mode switching).
 
 ### URL
 - `/me/notes/[id]` (e.g., `/me/notes/550e8400-e29b-41d4-a716-446655440000`)
@@ -23,13 +23,11 @@
 This page is composed of the following components. For component details, see the **Storybook** and individual component specs.
 
 ### Primary Components
-- `PageHeader` (navigation with back button and action buttons)
-- `NoteHeader` (note title with visibility badge, creation/update dates, word count)
-- `NoteContent` (plain text content with proper typography)
+- `Header` (global site navigation, inherited from layout)
+- Page header section (back button, edit/delete action buttons)
+- Note content section (title, metadata, content display)
 - `NoteEditor` (in-place text editor for editing mode)
-- `ActionButtons` (edit, delete, save, cancel controls)
-- `VisibilityBadge` (shows public/private status of the note)
-- `CommentSection` (displays existing comments and comment form for authenticated users)
+- `CommentsSection` (displays existing comments and comment form for authenticated users)
 - `CommentForm` (allows authenticated users to post new comments)
 - `CommentList` (displays all comments with username and content)
 
@@ -57,9 +55,8 @@ This section describes the primary user actions. They are consistent across mobi
 5. Displays visibility badge indicating whether note is "Public" (green) or "Private" (blue).
 
 #### Component Reference
-- `NoteContent`
-- `NoteHeader`
-- [Link to relevant Storybook entry](https://localhost:6006/?path=/story/components-notecontent)
+- Note content display (inline JSX)
+- Note metadata display (inline JSX)
 
 ### Edit Note
 
@@ -74,8 +71,7 @@ This section describes the primary user actions. They are consistent across mobi
 
 #### Component Reference
 - `NoteEditor`
-- `ActionButtons`
-- [Link to relevant Storybook entry](https://localhost:6006/?path=/story/components-noteeditor)
+- Action buttons (inline JSX)
 
 ### Save Note Changes
 
@@ -118,8 +114,8 @@ This section describes the primary user actions. They are consistent across mobi
 5. Shows deletion confirmation message.
 
 #### Component Reference
-- `ActionButtons`
-- `ConfirmationDialog`
+- Delete button (inline JSX)
+- Browser confirm dialog
 
 ### Navigate Back to Notebook
 
@@ -131,7 +127,7 @@ This section describes the primary user actions. They are consistent across mobi
 2. Preserves any notebook filtering or pagination state.
 
 #### Component Reference
-- `PageHeader`
+- Back button (inline JSX)
 
 ### View Comments
 
@@ -146,7 +142,7 @@ This section describes the primary user actions. They are consistent across mobi
 5. Receives `comment.created` messages via WebSocket when new comments are posted.
 
 #### Component Reference
-- `CommentSection`
+- `CommentsSection`
 - `CommentList`
 
 ### Post Comment
@@ -164,7 +160,7 @@ This section describes the primary user actions. They are consistent across mobi
 
 #### Component Reference
 - `CommentForm`
-- `CommentSection`
+- `CommentsSection`
 
 ## 4. Data Requirements
 

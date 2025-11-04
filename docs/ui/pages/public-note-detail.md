@@ -7,7 +7,7 @@
 - Designed with a responsive, mobile-first approach optimized for reading experience.
 - Features touch-friendly interactions and enhanced keyboard support for desktop.
 - **Server-Side Rendering (SSR)** with complete SEO optimization including Open Graph and Twitter Card meta tags.
-- Dark mode only in phase 1 - no light mode theme switching available.
+- Single theme design (no light/dark mode switching).
 
 ### URL
 - `/notes/[id]` (e.g., `/notes/550e8400-e29b-41d4-a716-446655440000`)
@@ -26,7 +26,7 @@ This page is composed of the following components. For component details, see th
 - `NoteHeader` (note title, author info with avatar, publication date, clickable author navigation)
 - `NoteContent` (formatted plain text content with prose styling and responsive typography)
 - `NoteMeta` (creation/update dates, estimated reading time)
-- `CommentSection` (displays existing comments and comment form for authenticated users)
+- `CommentsSection` (displays existing comments and comment form for authenticated users)
 - `CommentForm` (allows authenticated users to post comments, shows sign-in prompt for unauthenticated)
 - `CommentList` (displays all comments with username and content)
 
@@ -99,7 +99,7 @@ This section describes the primary user actions. They are consistent across mobi
 6. Accessible to all users (authenticated and unauthenticated).
 
 #### Component Reference
-- `CommentSection`
+- `CommentsSection`
 - `CommentList`
 
 ### Post Comment (Authenticated Users Only)
@@ -117,7 +117,7 @@ This section describes the primary user actions. They are consistent across mobi
 
 #### Component Reference
 - `CommentForm`
-- `CommentSection`
+- `CommentsSection`
 
 ### Sign In to Comment
 

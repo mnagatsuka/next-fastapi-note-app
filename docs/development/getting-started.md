@@ -1,218 +1,168 @@
-# Getting Started - Frontend Development
+# Getting Started
 
-This guide will help you set up and run the frontend application for the Note Taking App built with Next.js 15, Firebase Auth, and TypeScript.
+Quick setup guide for the Note Taking App (Next.js 15 + Firebase Auth).
 
 ## Prerequisites
 
-Before starting, make sure you have:
-
-- **Node.js** 20+ installed
+- **Node.js** 20+ 
 - **pnpm** package manager
 - **Firebase project** with Authentication enabled
-- **Git** for version control
 
 ## Initial Setup
 
-### 1. Clone and Install Dependencies
+### 1. Install Dependencies
 
 ```bash
-# Clone the repository
+# Clone and navigate to project
 git clone <repository-url>
-cd next-fastapi-note-app
-
-# Navigate to frontend directory
-cd frontend
+cd next-fastapi-note-app/frontend
 
 # Install dependencies
 pnpm install
 ```
 
-### 2. Environment Configuration
-
-Copy the example environment file and configure it:
+### 2. Environment Setup
 
 ```bash
 # Copy environment template
 cp .env.example .env.development
 ```
 
-Edit `.env.development` with your Firebase credentials:
+Edit `.env.development` with your Firebase credentials (get from Firebase Console → Project Settings):
 
 ```bash
-# Client-side environment variables (accessible in browser)
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
-NEXT_PUBLIC_API_TIMEOUT=30000
+# Required Firebase config
 NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key_here
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
 NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
-NEXT_PUBLIC_API_MOCKING=false
-# NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
-# NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
-# NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
 
-# Server-side environment variables (Node.js only)
-NODE_ENV=development
-APP_ENV=development
-API_BASE_URL=http://backend:8000
-API_TIMEOUT=30000
-FIREBASE_PROJECT_ID=your_firebase_project_id
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project_id.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYour private key here\n-----END PRIVATE KEY-----\n"
-FIREBASE_SERVICE_ACCOUNT_JSON=path/to/service-account-key.json
-FIREBASE_API_KEY=your_server_firebase_api_key
-FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099
+# Optional: Firebase emulator for local development
+NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
 ```
 
-### 3. Get Firebase Configuration
+### 3. Firebase Setup
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Select your project (or create a new one)
-3. Go to **Project Settings** > **General**
-4. In "Your apps" section, find your web app and copy the config values
-5. Go to **Project Settings** > **Service accounts**
-6. Click **Generate new private key** and download the JSON file
-7. Extract the required values from the JSON file
+2. Create project or select existing one
+3. **Authentication** → **Sign-in method** → Enable **Anonymous** provider
+4. **Project Settings** → **General** → Copy web app config values
 
-### 4. Enable Firebase Authentication
+## Docker Development (Recommended)
 
-1. In Firebase Console, go to **Authentication** > **Sign-in method**
-2. Enable **Email/password** provider
-3. Enable **Anonymous** provider
+### Quick Start with Docker
 
-### 5. Generate API Client Code
+```bash
+# Start all services
+docker compose up -d
 
-If the OpenAPI specification has been updated, generate the frontend client code:
+# Or start specific services
+docker compose up frontend backend
+docker compose up localstack serverless
+```
+
+### Docker Services
+
+The `docker-compose.yml` provides a complete development environment:
+
+#### Infrastructure Services
+- **LocalStack** (port 4566): DynamoDB emulation for local development
+- **Serverless** (ports 3001, 3002): WebSocket API and HTTP broadcast endpoints
+
+#### Application Services  
+- **Frontend** (port 3000): Next.js development server with hot reload
+- **Backend** (port 8000): FastAPI server with hot reload
+
+### Service URLs
+
+After running `docker-compose up`:
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8000
+- **WebSocket**: ws://localhost:3001
+- **LocalStack**: http://localhost:4566
+
+### Docker Commands
+
+```bash
+# Start all services
+docker compose up
+
+# Start in background
+docker compose up -d
+
+# Start specific services
+docker compose up frontend backend
+
+# Rebuild and start
+docker compose up --build
+
+# Stop all services
+docker compose down
+
+# View logs
+docker compose logs -f frontend
+docker compose logs -f backend
+```
+
+## Available Commands
+
+```bash
+# Development (frontend directory)
+pnpm dev              # Start development server
+pnpm build            # Build for production
+pnpm lint             # Run linter  
+pnpm format           # Format code
+pnpm typecheck        # Check TypeScript types
+pnpm test             # Run tests
+
+# From project root
+pnpm api:fe           # Generate frontend code from OpenAPI
+pnpm api:be           # Generate backend code from OpenAPI
+pnpm fb:emu:auth      # Start Firebase auth emulator
+```
+
+## Optional: Firebase Emulator
+
+For local testing without live Firebase:
 
 ```bash
 # From project root
-pnpm api:fe
-```
-
-This generates:
-- TypeScript interfaces in `src/lib/api/generated/schemas/`
-- TanStack Query hooks in `src/lib/api/generated/client.ts`
-- MSW mock handlers in `src/lib/api/generated/client.msw.ts`
-
-### 6. Start Development Server
-
-```bash
-# Start the development server
-pnpm dev
-```
-
-The application will be available at **http://localhost:3000**
-
-### 7. Verify Setup
-
-1. Open http://localhost:3000 in your browser
-2. You should see the home page with public notes (may be empty initially)
-3. Try accessing private features (like "My Notebook") - this should trigger anonymous authentication
-4. Check browser console for any errors
-
-## Optional: Firebase Emulator for Local Development
-
-For local testing without connecting to live Firebase:
-
-```bash
-# Install Firebase CLI
-pnpm add -D firebase-tools
-
-# Login to Firebase (one-time setup)
-npx firebase login
-
-# Initialize emulators
-npx firebase init emulators
-# Select: Authentication Emulator
-# Use default port (9099)
+pnpm fb:emu:auth
 
 # Update .env.development
 NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST=localhost:9099
-
-# Start emulator
-npx firebase emulators:start --only auth
 ```
 
-## Essential Commands
+### 3. Test Endpoints
 
 ```bash
-# Development
-pnpm dev              # Start development server
-pnpm build            # Build for production
-pnpm typecheck        # Check TypeScript types
+# Public notes
+curl "http://localhost:8000/notes?page=1&limit=20"
 
-# Code generation
-pnpm api:fe           # Generate frontend code from OpenAPI
-
-# Code quality
-pnpm lint             # Run linter
-pnpm format           # Format code
+# Private notes (requires Firebase auth token)
+curl "http://localhost:8000/me/notes" -H "Authorization: Bearer <token>"
 ```
 
-## Verification Checklist
+## Troubleshooting
 
-- [ ] Dependencies installed successfully
-- [ ] Environment variables configured
-- [ ] Firebase project created and configured
-- [ ] Authentication providers enabled
-- [ ] Development server starts without errors
-- [ ] Application loads at http://localhost:3000
-- [ ] Anonymous authentication works (try accessing private pages)
-- [ ] No console errors in browser DevTools
-
-You're now ready to start developing! The frontend uses schema-first development with automatic code generation, so most API integration code is generated automatically from the OpenAPI specification.
-
-## Backend Startup (Quick Start)
-
-Use this when you want a working API locally alongside the frontend. This follows the OpenAPI‑first backend workflow and Firebase auth model.
-
-### 1) Generate backend models from OpenAPI
-
-From project root (uses `docs/api/openapi.yml`):
+### Docker Issues
 
 ```bash
-pnpm api:lint
-pnpm api:bundle
-pnpm api:be   # generates Pydantic models under backend/src/app/generated/
+# If containers fail to start
+docker-compose down
+docker-compose up --build
+
+# Check service logs
+docker-compose logs -f <service-name>
+
+# Reset volumes
+docker-compose down -v
+docker-compose up
 ```
 
-### 2) Start the FastAPI server (manual)
+### Common Problems
 
-In one terminal:
-
-```bash
-cd backend
-
-# Option A: FastAPI CLI (if available)
-uv run fastapi dev src/app/main.py
-
-# Option B: Uvicorn
-# (runs main:app inside src/app)
-uvicorn main:app --reload --host 0.0.0.0 --port 8000 --app-dir src/app
-```
-
-API base URL: `http://localhost:8000`
-
-### 3) Verify endpoints
-
-- Public (no auth):
-```bash
-curl "http://localhost:8000/notes?page=1&limit=20" -H "Accept: application/json"
-```
-
-- Authenticated (anonymous or regular): obtain a Firebase ID token, then:
-```bash
-# Private notes
-curl "http://localhost:8000/me/notes" \
-  -H "Authorization: Bearer <firebase-id-token>" \
-  -H "Accept: application/json"
-
-# Anonymous login handshake (if you need to trigger user creation)
-curl -X POST "http://localhost:8000/auth/anonymous-login" \
-  -H "Authorization: Bearer <firebase-id-token>"
-```
-
-Notes:
-- The backend enforces the response envelope `{ status: 'success', data: ... }` as defined in `docs/api/components/schemas/*-response.yml`.
-- Authentication flows and token validation patterns are described in `docs/auth-security/authentication.md`.
-- Architectural context (layers and OpenAPI‑first approach) is in `docs/architecture/overview.md`.
+- **Port conflicts**: Make sure ports 3000, 8000, 3001, 4566 are available
+- **Environment files**: Ensure `.env.development` files exist in frontend/ and backend/
+- **Firebase config**: Update Firebase credentials in environment files

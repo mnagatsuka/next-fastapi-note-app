@@ -6,8 +6,8 @@
 - Simple landing page showcasing the latest public notes where anyone can browse recently published content without authentication.
 - Designed with a responsive, mobile-first approach.
 - Features touch-friendly interactions and enhanced keyboard support for desktop.
-- **Client-Side Rendering (CSR)** with Suspense for dynamic content loading.
-- Dark mode only in phase 1 - no light mode theme switching available.
+- **Server-Side Rendering (SSR)** with Suspense for client component integration.
+- Single theme design (no light/dark mode switching).
 
 ### URL
 - `/` (root path)
@@ -21,15 +21,16 @@
 This page is composed of the following components. For component details, see the **Storybook** and individual component specs.
 
 ### Primary Components
-- `Header` (sticky top navigation with authentication actions)
-- `HeroSection` (welcome banner with app title and description)
+- `Header` (global site navigation - inherited from layout)
+- Hero section (inline welcome banner with app title and description)
 - `LatestNotesSection` (paginated grid of recently published notes with author filtering)
+- `PublicNotesGrid` (responsive grid layout for note cards)
 - `NoteCard` (individual note preview cards with author navigation)
 
 ### Responsive Behavior
 - The layout is mobile-first and fills the screen width by default.
-- Container with max-width constraints and padding (`container mx-auto px-4 py-6`).
-- Header remains sticky at the top for easy navigation with backdrop blur effect.
+- Container with max-width constraints and padding (`container mx-auto px-4 sm:px-6 lg:px-8 py-8`).
+- Header is positioned at the top (not sticky).
 - Note cards arrange in responsive grid (1 column mobile, 2 columns tablet, 3 columns desktop).
 - Pagination controls adapt to screen size with centered layout.
 
@@ -44,15 +45,16 @@ This section describes the primary user actions. They are consistent across mobi
 
 #### Behavior
 1. Client-side fetches recent notes using `GET /notes` with pagination (page: 1, limit: 12, sort: 'latest').
-2. Shows skeleton loading state during initial fetch.
+2. Shows skeleton loading state with animated placeholders during initial fetch.
 3. Implements pagination with Previous/Next buttons for additional notes.
-4. Displays note count and current page information.
-5. Shows empty state if no notes are published.
+4. Displays note count and current page information ("Page X of Y").
+5. Shows contextual empty state messages based on filter status.
+6. Handles errors gracefully with retry messaging.
 
 #### Component Reference
 - `LatestNotesSection`
+- `PublicNotesGrid`
 - `NoteCard`
-- [Link to relevant Storybook entry](https://localhost:6006/?path=/story/components-latestnotes)
 
 ### Navigate to Note Detail
 
@@ -74,14 +76,14 @@ This section describes the primary user actions. They are consistent across mobi
 
 #### Behavior
 1. Updates URL with query parameter: `/?author={authorId}`.
-2. Updates page title to show "Notes by {Author Name}".
-3. Shows "← Show all notes" button to clear filter.
+2. Updates section title to show "Notes by {Author Name}".
+3. Shows "← Show all notes" ghost button to clear filter.
 4. Resets pagination to page 1 when filtering.
 5. Uses Zustand store to manage filter state across navigation.
+6. Maintains filter state during pagination.
 
 #### Component Reference
-- `NoteCard`
-- `NoteHeader`
+- `PublicNotesGrid`
 - `LatestNotesSection`
 
 ### Navigate Between Pages
@@ -104,12 +106,12 @@ This section describes the primary user actions. They are consistent across mobi
 - User clicks "My Notebook" button in header (always visible).
 
 #### Behavior
-1. If no Firebase Auth session exists, silently calls `signInAnonymously()` in background.
-2. Shows "Loading..." state during authentication process.
-3. Firebase ID token is validated and user authenticated via `POST /auth/anonymous-login`.
-   - **Database Operation**: Anonymous user data is stored in DB upon first authentication
+1. If no Firebase Auth session exists, calls `signInAnonymously()` and shows "Loading..." state.
+2. Shows authentication progress with disabled button state.
+3. Firebase ID token is validated by AuthProvider which handles backend bridge call.
 4. Navigates to `/me` (My Notebook page) after authentication completes.
 5. Authentication errors are logged but user can retry.
+6. For authenticated users, navigates directly to `/me`.
 
 #### Component Reference
 - `Header`
@@ -144,7 +146,7 @@ This section outlines the API endpoints this page interacts with. For complete r
 - `sort` (string, default `latest`): Sort order (latest only)
 - `page` (number, default `1`): Page number for pagination
 - `limit` (number, default `12`): Number of notes per page
-- `author` (string, optional): Filter notes by author ID (not yet implemented in backend)
+- `author` (string, optional): Filter notes by author ID (frontend-only filtering)
 
 #### API Spec Reference
 - See the `getNotes` endpoint in the [OpenAPI spec](../api/openapi.yml).
@@ -171,14 +173,15 @@ Describe how the page's appearance or behavior changes based on application stat
 
 ### Loading State
 - Initial page load shows Suspense fallback: "Loading notes..." message.
-- Notes section shows skeleton loading during data fetch.
-- "My Notebook" button shows "Loading..." during authentication.
-- Pagination shows loading state during page transitions.
+- Notes section shows animated skeleton cards with placeholder content during data fetch.
+- "My Notebook" button shows "Loading..." and disabled state during authentication.
+- Page transitions maintain current content while fetching new data.
 
 ### Empty State
-- When no notes are available, shows:
-  - "No notes published yet" or "No notes found" message
-  - Encouragement text based on filter state
+- When no notes are available, shows contextual messages:
+  - "No notes published yet" for general empty state
+  - "No notes found" when author filter is active
+  - Contextual encouragement text based on filter state
   - "Show All Notes" button when author filter is active
 
 ### Error State
@@ -188,11 +191,12 @@ Describe how the page's appearance or behavior changes based on application stat
 
 ### Author Filter State
 - When author filter is active:
-  - Page title shows "Notes by {Author Name}"
-  - Shows "← Show all notes" button to clear filter
+  - Section title shows "Notes by {Author Name}"
+  - Shows "← Show all notes" ghost button to clear filter
   - Note count reflects filtered results
   - Pagination resets to page 1
 - Filter state managed by Zustand store and synchronized with URL
+- Filter persists during pagination
 
 ### Pagination State
 - Shows "Page X of Y" information

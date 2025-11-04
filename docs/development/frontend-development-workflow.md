@@ -21,23 +21,39 @@ Our development workflow combines **schema-first API design** with **Firebase au
 ```
 frontend/src/
 ├── app/                              # Next.js App Router pages
-│   ├── api/auth/                     # Authentication API routes
 │   ├── (public)/                     # Public pages (SSR)
 │   │   ├── page.tsx                  # Home - latest notes
 │   │   └── notes/[id]/page.tsx       # Public note detail
 │   ├── (private)/                    # Private pages (CSR)
-│   │   ├── me/page.tsx               # My Notebook
+│   │   ├── me/                       # My Notebook
+│   │   │   ├── page.tsx              # Notes list
+│   │   │   └── notes/                # Note management
+│   │   │       ├── [id]/             # View/edit note
+│   │   │       └── new/              # Create note
 │   │   └── account/page.tsx          # Account Profile
+│   ├── layout.tsx                    # Root layout
 │   └── not-found.tsx                 # 404 error page
 │
 ├── components/
 │   ├── auth/                         # Authentication components
-│   │   ├── LoginModal.tsx            # Uses AuthRequest types
-│   │   └── SignUpModal.tsx           # Uses UserRegistration types
-│   ├── notes/
-│   │   ├── NoteCard.tsx              # Uses PublicNote/PrivateNote types
-│   │   ├── NoteEditor.tsx            # Uses CreateMyNoteRequest type
-│   │   └── NoteList.tsx              # Uses PublicNotesListResponse/PrivateNotesListResponse
+│   │   ├── LoginModal.tsx            # Login form with Firebase auth
+│   │   ├── SignUpModal.tsx           # Registration form  
+│   │   └── ModalOverlay.tsx          # Modal wrapper component
+│   ├── notes/                        # Note components
+│   │   ├── NoteCard.tsx              # Unified note card (public/private)
+│   │   ├── NoteEditor.tsx            # Note creation/editing form
+│   │   ├── LatestNotesSection.tsx    # Public notes display
+│   │   ├── PublicNotesGrid.tsx       # Public notes grid layout
+│   │   ├── PrivateNotesGrid.tsx      # Private notes grid layout
+│   │   └── BaseNoteCard.tsx          # Base note card component
+│   ├── comments/                     # Comment system
+│   │   ├── CommentForm.tsx           # Comment creation form
+│   │   ├── CommentList.tsx           # Comments display
+│   │   └── CommentsSection.tsx       # Complete comments section
+│   ├── profile/                      # User profile components
+│   │   ├── ProfileDisplay.tsx        # Profile view
+│   │   ├── ProfileEditForm.tsx       # Profile editing
+│   │   └── ProfileAvatar.tsx         # Avatar component
 │   ├── layout/
 │   │   ├── Header.tsx                # Navigation with auth state
 │   │   └── Footer.tsx                # Static footer
@@ -49,30 +65,115 @@ frontend/src/
 │   │   │   ├── client.ts             # TanStack Query hooks
 │   │   │   ├── client.msw.ts         # MSW mock handlers
 │   │   │   └── schemas/              # TypeScript interfaces
-│   │   │       ├── public-note.ts    # PublicNote interface
-│   │   │       ├── private-note.ts   # PrivateNote interface
-│   │   │       └── user-profile.ts   # UserProfile interface
+│   │   │       ├── publicNote.ts     # PublicNote interface
+│   │   │       ├── privateNote.ts    # PrivateNote interface
+│   │   │       ├── userProfile.ts    # UserProfile interface
+│   │   │       ├── comment.ts        # Comment interface
+│   │   │       └── index.ts          # Schema exports
 │   │   └── customFetch.ts            # Custom fetch with Firebase auth
-│   ├── auth/                         # Firebase auth utilities
+│   ├── config/                       # Configuration
+│   │   └── env.ts                    # Environment variables
 │   ├── firebase/                     # Firebase client setup
+│   │   └── config.ts                 # Firebase configuration
 │   ├── providers/                    # React context providers
-│   └── utils/                        # General utilities
+│   │   ├── AppProviders.tsx          # Main providers wrapper
+│   │   ├── AuthProvider.tsx          # Authentication context
+│   │   ├── QueryProvider.tsx         # TanStack Query provider
+│   │   └── WebSocketProvider.tsx     # WebSocket context
+│   ├── hooks/                        # Custom hooks
+│   │   ├── useWebSocket.ts           # WebSocket management
+│   │   └── useCommentsWebSocket.ts   # Comments real-time updates
+│   └── utils.ts                      # General utilities
 │
 ├── stores/                           # Zustand stores
-│   ├── authStore.ts                  # Authentication state
-│   └── modalStore.ts                 # Modal visibility state
+│   ├── auth-store.ts                 # Authentication state
+│   ├── auth-modal-store.ts           # Auth modal visibility
+│   ├── notes-store.ts                # Notes pagination state
+│   └── websocket-store.ts            # WebSocket connection state
 │
 ├── mocks/
 │   ├── handlers/index.ts             # MSW handler setup
 │   ├── browser.ts                    # Browser MSW setup
 │   └── server.ts                     # Node MSW setup (testing)
 │
-└── types/                            # Custom frontend-only types
+├── hooks/                            # Page-level hooks
+│   ├── useNoteNavigation.ts          # Note navigation logic
+│   ├── useNoteVisibility.ts          # Note visibility handling
+│   └── useProfileForm.ts             # Profile form management
+├── utils/                            # Utility functions
+│   └── profile.ts                    # Profile-related utilities
+└── middleware.ts                     # Next.js middleware (security headers)
 ```
 
 ## 🔄 Development Workflow
 
-### 1. Schema-to-Code Generation
+### 1. Component Development with Storybook
+
+Our component development workflow includes Storybook for isolated component development and documentation:
+
+#### Running Storybook
+
+```bash
+# With Docker (recommended for full environment)
+docker compose up storybook
+
+# Or locally
+cd frontend
+pnpm install
+pnpm storybook
+```
+
+Access Storybook at http://localhost:6006 for:
+- **Component Development**: Build and test components in isolation
+- **Interactive Documentation**: View auto-generated docs and component APIs
+- **Visual Testing**: Test different props, states, and variants
+- **Accessibility Testing**: Built-in a11y addon for accessibility validation
+- **Design System**: Maintain consistent component library
+
+#### Available Stories
+
+- **UI Components**: Button, FormField, and other base components
+- **Profile Components**: ProfileAvatar with different sizes and states
+- **Note Components**: NoteCard (public/private/owner views), NoteEditor
+- **Comment Components**: CommentItem with optimistic updates
+- **Layout Components**: Header with different authentication states
+
+#### Adding New Stories
+
+1. Create a `.stories.tsx` file next to your component:
+```typescript
+import type { Meta, StoryObj } from '@storybook/react';
+import { YourComponent } from './YourComponent';
+
+const meta: Meta<typeof YourComponent> = {
+  title: 'Components/YourComponent',
+  component: YourComponent,
+  parameters: { layout: 'centered' },
+  tags: ['autodocs'],
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {
+  args: {
+    // Your default props
+  },
+};
+```
+
+2. Run `pnpm storybook` to see your stories
+
+#### Storybook Development Workflow
+
+1. **Design Components**: Start with stories to define component API
+2. **Build Variants**: Create stories for different states and props
+3. **Test Interactions**: Use controls to test component behavior
+4. **Document Usage**: Auto-generated docs with JSDoc comments
+5. **Accessibility Check**: Use a11y addon to validate accessibility
+6. **Integration**: Use components in actual pages after Storybook validation
+
+### 2. Schema-to-Code Generation
 
 When OpenAPI schemas change, regenerate frontend code:
 
@@ -82,8 +183,8 @@ pnpm api:fe
 ```
 
 This runs:
-1. `pnpm api:bundle` - Bundles OpenAPI spec to `docs/api/openapi.bundled.yml`
-2. `pnpm orval:gen` - Generates TypeScript code and MSW mocks
+1. `pnpm api:bundle` - Bundles OpenAPI spec to `docs/api/openapi.bundled.yml`  
+2. `orval` - Generates TypeScript code and MSW mocks using orval.config.ts
 
 ### 2. Authentication-First Development
 
@@ -95,7 +196,7 @@ Our app follows an **anonymous-first** authentication pattern:
 
 Bridge calls to backend (per docs/api):
 - After `signInAnonymously()`: call `POST /auth/anonymous-login` with Bearer token to ensure DB user
-- After regular login/signup (`signInWithEmailAndPassword`/provider): call `GET /auth/login`
+- After regular login/signup (`signInWithEmailAndPassword`/provider): handled automatically via customFetch
 - After anonymous promotion (`linkWithCredential`): call `POST /auth/anonymous-promote`
 - Logout: client-only via Firebase `signOut()`; no backend endpoint
 
@@ -191,34 +292,49 @@ Use generated types for complete type safety:
 
 **Example**: `frontend/src/components/notes/NoteCard.tsx`
 ```typescript
-import type { PublicNote } from '@/lib/api/generated/schemas'
+import type { PublicNote, PrivateNote } from '@/lib/api/generated/schemas'
 
 interface NoteCardProps {
-  note: PublicNote  // ✅ Generated from OpenAPI
-  onEdit?: (noteId: string) => void
-  onDelete?: (noteId: string) => void
+  note: PublicNote | PrivateNote  // ✅ Generated from OpenAPI
+  viewContext: "public" | "private" | "owner"
+  onEdit?: (id: string) => void
+  onDelete?: (id: string) => void
+  onAuthorFilter?: (authorId: string) => void
 }
 
-export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
+export function NoteCard({ note, viewContext, onEdit, onDelete }: NoteCardProps) {
+  // Type guards to handle API differences
+  function isPublicNote(note: PublicNote | PrivateNote): note is PublicNote {
+    return "author" in note && !("isPublic" in note);
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{note.title}</CardTitle>  {/* ✅ Type-safe */}
-        {/* Public badge optional; public notes are implied on this page */}
+        <CardTitle>{note.title || "Untitled"}</CardTitle>  {/* ✅ Type-safe */}
       </CardHeader>
       <CardContent>
         <p className="line-clamp-3">{note.content}</p>
         <p className="text-sm text-muted-foreground">
           {formatDate(note.updatedAt)}
         </p>
+        {isPublicNote(note) && (
+          <p className="text-sm text-muted-foreground">
+            by {note.author.displayName}
+          </p>
+        )}
       </CardContent>
       <CardFooter>
-        <Button variant="outline" onClick={() => onEdit?.(note.id)}>
-          Edit
-        </Button>
-        <Button variant="destructive" onClick={() => onDelete?.(note.id)}>
-          Delete
-        </Button>
+        {viewContext === "owner" && (
+          <>
+            <Button variant="outline" onClick={() => onEdit?.(note.id)}>
+              Edit
+            </Button>
+            <Button variant="destructive" onClick={() => onDelete?.(note.id)}>
+              Delete
+            </Button>
+          </>
+        )}
       </CardFooter>
     </Card>
   )
@@ -229,25 +345,32 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
 
 #### Public Pages (SSR) - Home Page
 
-**Example**: `frontend/src/app/page.tsx`
+**Example**: `frontend/src/app/(public)/page.tsx`
 ```typescript
-import { getNotes } from '@/lib/api/generated/client'
-import { NoteCard } from '@/components/notes/NoteCard'
+import { LatestNotesSection } from '@/components/notes/LatestNotesSection'
+import { Suspense } from 'react'
 
-// Server Component - no hooks needed
-export default async function HomePage() {
-  const res = await getNotes({ limit: 10 })
-
-  if (!res?.data?.notes?.length) {
-    return <div>No public notes available</div>
-  }
-
+export default function HomePage() {
   return (
-    <main className="container mx-auto py-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {res.data.notes.map(note => (
-          <NoteCard key={note.id} note={note} />  {/* ✅ Type-safe */}
-        ))}
+    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+      <div className="space-y-8">
+        <section className="text-center py-12 sm:py-16">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-6">Simple Notes</h1>
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Discover and read the latest public notes from our community. Create
+            your own private notebook to start writing your thoughts.
+          </p>
+        </section>
+
+        <Suspense
+          fallback={
+            <div className="text-center py-8">
+              <div className="text-muted-foreground">Loading notes...</div>
+            </div>
+          }
+        >
+          <LatestNotesSection limit={12} />  {/* ✅ Client component with hooks */}
+        </Suspense>
       </div>
     </main>
   )
@@ -256,27 +379,33 @@ export default async function HomePage() {
 
 #### Private Pages (CSR) - My Notebook
 
-**Example**: `frontend/src/app/me/page.tsx`
+**Example**: `frontend/src/app/(private)/me/page.tsx`
 ```typescript
 'use client'
 
-import { useGetMyNotes } from '@/lib/api/generated/client'
-import { NoteEditor } from '@/components/notes/NoteEditor'
-import { NoteCard } from '@/components/notes/NoteCard'
+import { PrivateNotesGrid } from '@/components/notes/PrivateNotesGrid'
+import { FloatingActionButton } from '@/components/ui/floating-action-button'
+import { useRouter } from 'next/navigation'
 
 export default function MyNotebookPage() {
-  const { data: notes, isLoading, error } = useGetMyNotes()
-
-  if (isLoading) return <div>Loading your notes...</div>
-  if (error) return <div>Error: {error.message}</div>
+  const router = useRouter()
 
   return (
-    <main className="container mx-auto py-6">
-      <NoteEditor />  {/* Create new notes */}
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        {notes?.data?.map(note => (
-          <NoteCard key={note.id} note={note} />  {/* ✅ Type-safe */}
-        ))}
+    <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1">
+      <div className="space-y-8">
+        <section>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">My Notebook</h1>
+          <p className="text-muted-foreground">
+            Your private notes. Only you can see them.
+          </p>
+        </section>
+
+        <PrivateNotesGrid />  {/* ✅ Uses generated hooks internally */}
+        
+        <FloatingActionButton 
+          onClick={() => router.push('/me/notes/new')}
+          label="Add Note"
+        />
       </div>
     </main>
   )
@@ -291,31 +420,63 @@ Create forms using generated request types and Firebase auth:
 ```typescript
 'use client'
 
-import type { CreateMyNoteRequest } from '@/lib/api/generated/schemas'
-import { useCreateNote } from '@/lib/api/generated/client'
-import { useAuthStore } from '@/stores/authStore'
+import type { CreateMyNoteBody } from '@/lib/api/generated/schemas'
+import { useCreateMyNote } from '@/lib/api/generated/client'
+import { useAuthStore } from '@/lib/stores/auth-store'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { useState } from 'react'
 
 export function NoteEditor() {
   const { user } = useAuthStore()
+  const [content, setContent] = useState('')
+  const [title, setTitle] = useState('')
   
-  const createMutation = useCreateNote({
+  const createMutation = useCreateMyNote({
     onSuccess: (response) => {
       // response is typed as PrivateNoteResponse
       console.log('Created note:', response.data.id)
-      // Invalidate queries to refresh note list
+      setContent('')
+      setTitle('')
+      // Query invalidation handled by onSuccess callback
     }
   })
   
-  const handleSubmit = (formData: CreateMyNoteRequest) => {
-    if (!user) {
-      // Trigger anonymous authentication if needed
-      return
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!content.trim()) return
+    
+    const formData: CreateMyNoteBody = {
+      content: content.trim(),
+      title: title.trim() || undefined
     }
     
     createMutation.mutate(formData)  // ✅ Type-safe API call
   }
 
-  // Form implementation with Zod validation based on OpenAPI schema
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <input
+        type="text"
+        placeholder="Note title (optional)"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="w-full p-2 border rounded"
+      />
+      <Textarea
+        placeholder="Write your note..."
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        required
+      />
+      <Button 
+        type="submit" 
+        disabled={createMutation.isPending || !content.trim()}
+      >
+        {createMutation.isPending ? 'Creating...' : 'Create Note'}
+      </Button>
+    </form>
+  )
 }
 ```
 
@@ -584,12 +745,12 @@ function isPrivateEndpoint(url: string): boolean {
 
 ```typescript
 // ✅ Good: Import specific types
-import type { PrivateNote, CreateMyNoteRequest, UserProfile } from '@/lib/api/generated/schemas'
+import type { PrivateNote, CreateMyNoteBody, UserProfile } from '@/lib/api/generated/schemas'
 
 // ✅ Good: Use generated types for props
 interface NoteCardProps {
-  note: PrivateNote
-  user?: UserProfile  // Optional for public notes
+  note: PrivateNote | PublicNote
+  viewContext: "public" | "private" | "owner"
 }
 
 // ✅ Good: Extend generated types when needed
@@ -689,20 +850,27 @@ const authTestHandlers = [
 # 1. When OpenAPI schemas change, regenerate frontend code
 pnpm api:fe
 
-# 2. Start development server (with MSW mocking + Firebase emulator)
-cd frontend && pnpm dev
+# 2. Start development services
+docker compose up frontend        # Next.js development server
+docker compose up storybook      # Component development
 
-# 3. Type check across the project
+# 3. Component development workflow
+cd frontend && pnpm storybook    # Local Storybook development
+
+# 4. Type check across the project
 cd frontend && pnpm typecheck
 
-# 4. Run tests with generated mocks and auth context
+# 5. Run tests with generated mocks and auth context
 cd frontend && pnpm test
 
-# 5. E2E tests with full auth flow
+# 6. E2E tests with full auth flow
 cd frontend && pnpm test:e2e
 
-# 6. Lint and format code (using Biome)
+# 7. Lint and format code (using Biome)
 cd frontend && pnpm lint && pnpm format
+
+# 8. Build Storybook for deployment
+cd frontend && pnpm build-storybook
 ```
 
 ### Authentication-Specific Development
@@ -718,7 +886,7 @@ cd frontend && pnpm test src/components/auth/
 cd frontend && pnpm test src/stores/authStore.test.ts
 ```
 
-### Validation
+### Component Development & Validation
 
 ```bash
 # Ensure generated code compiles without errors
@@ -730,6 +898,12 @@ cd frontend && pnpm test src/components/auth/
 
 # Test auth integration
 cd frontend && pnpm test src/lib/auth/
+
+# Component development with Storybook
+cd frontend && pnpm storybook
+
+# Build and validate Storybook
+cd frontend && pnpm build-storybook
 
 # Validate security headers in development
 cd frontend && pnpm dev:security-check
@@ -772,6 +946,13 @@ cd frontend && pnpm dev:security-check
    - **Firebase emulator connection**: Verify emulator is running for local auth testing
    - **Environment variables**: Ensure Firebase config is loaded from `.env.local`
 
+7. **Storybook Issues**
+   - **Stories not loading**: Check if `.storybook` directory is properly configured
+   - **Component imports failing**: Verify path aliases are configured in `.storybook/main.ts`
+   - **Tailwind styles not working**: Ensure `globals.css` is imported in `.storybook/preview.ts`
+   - **Dependencies missing**: Run `pnpm install` to ensure Storybook packages are installed
+   - **Port conflicts**: Ensure port 6006 is available or change port in docker-compose.yml
+
 ## 📚 Related Files
 
 ### API & Schema Files
@@ -794,6 +975,9 @@ cd frontend && pnpm dev:security-check
 - **Next.js Config**: `frontend/next.config.ts`
 - **Firebase Config**: `frontend/src/lib/firebase/config.ts`
 - **Auth Store**: `frontend/src/stores/authStore.ts`
+- **Storybook Config**: `frontend/.storybook/main.ts`
+- **Storybook Preview**: `frontend/.storybook/preview.ts`
+- **Docker Compose**: `docker-compose.yml` (includes Storybook service)
 
 ## ✅ Success Checklist
 
@@ -823,6 +1007,7 @@ A properly implemented schema-driven frontend with Firebase auth should have:
 - [ ] **Auth-aware mocks** - anonymous vs regular user scenarios
 - [ ] **Component testing** - with auth context and proper providers
 - [ ] **E2E auth flows** - anonymous signup, regular login, account linking
+- [ ] **Storybook stories** - comprehensive component documentation with all variants
 
 ### User Experience
 - [ ] **Progressive enhancement** - public-first, auth enhances experience

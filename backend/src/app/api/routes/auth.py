@@ -48,7 +48,7 @@ async def login_regular_user(
 
 
 @router.post("/anonymous-login", response_model=AuthResultResponse)
-async def authenticate_anonymous(
+async def login_anonymous_user(
     user: UserContext = Depends(get_authenticated_user),
     users: UserApplicationService = Depends(get_user_application_service),
 ):

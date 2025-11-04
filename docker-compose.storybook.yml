@@ -1,0 +1,32 @@
+services:
+  storybook:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile.storybook
+    ports:
+      - "6006:6006"
+    env_file:
+      - ./frontend/.env.development
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/.storybook:/app/.storybook
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/pnpm-lock.yaml:/app/pnpm-lock.yaml
+      - ./frontend/tsconfig.json:/app/tsconfig.json
+      - ./frontend/next.config.ts:/app/next.config.ts
+      - ./frontend/tailwind.config.ts:/app/tailwind.config.ts
+      - ./frontend/postcss.config.mjs:/app/postcss.config.mjs
+      - ./frontend/components.json:/app/components.json
+      - node_modules_storybook:/app/node_modules
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  node_modules_storybook:
+    driver: local

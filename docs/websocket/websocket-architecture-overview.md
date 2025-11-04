@@ -27,8 +27,8 @@ graph TB
     subgraph "Frontend (Next.js)"
         A[CommentsSection Component]
         B[WebSocket Store (Zustand)]
-        C[useWebSocketManager Hook]
-        D[RealtimeNotifications]
+        C[useWebSocket Hook]
+        D[WebSocketProvider]
     end
     
     subgraph "Backend (FastAPI)"
@@ -47,7 +47,7 @@ graph TB
     A --> B
     B --> C
     C --> H
-    D --> C
+    D --> B
     
     E --> F
     F --> K
@@ -71,13 +71,12 @@ graph TB
   - Multiple subscribers per message type
 
 #### 2. WebSocket Hooks
-- **`useWebSocket.ts`**: Basic WebSocket connection with reconnection logic
-- **`useWebSocketManager.ts`**: Global WebSocket manager integration
-- **`useCommentsWebSocket.ts`**: Comment-specific WebSocket handling
+- **`useWebSocket.ts`**: Basic WebSocket connection status and message subscription interface
+- **`useCommentsWebSocket.ts`**: Comment-specific WebSocket handling with React Query integration
 
 #### 3. React Components
 - **`CommentsSection.tsx`**: Real-time comment updates in UI
-- **`RealtimeNotifications.tsx`**: Global toast notification system
+- **`WebSocketProvider.tsx`**: Global WebSocket connection management
 
 ### Backend Components
 
@@ -119,12 +118,12 @@ graph TB
 
 ### 1. Comment Creation Flow
 ```
-1. User creates comment → POST /api/v1/posts/{id}/comments
+1. User creates comment → POST /notes/{id}/comments or /me/notes/{id}/comments
 2. FastAPI processes comment → Saves to DynamoDB  
-3. FastAPI calls WebSocket service → HTTP POST to broadcast endpoint
+3. FastAPI calls WebSocket service → HTTP POST to broadcast endpoint (port 3002)
 4. Lambda function retrieves connections → Scans DynamoDB connections table
-5. Lambda broadcasts message → API Gateway WebSocket to all clients
-6. Frontend receives message → Updates UI via WebSocket store
+5. Lambda broadcasts message → API Gateway WebSocket to all clients (port 3001)
+6. Frontend receives message → Updates UI via WebSocket store and React Query cache
 ```
 
 ### 2. Connection Management Flow
@@ -210,7 +209,7 @@ graph TB
 NEXT_PUBLIC_WEBSOCKET_URL=ws://localhost:3001
 
 # Backend (.env.development)
-APP_SERVERLESS_WEBSOCKET_ENDPOINT=http://localhost:3001
+APP_SERVERLESS_WEBSOCKET_ENDPOINT=http://localhost:3002
 ```
 
 ### Production Environment
@@ -226,7 +225,8 @@ APP_SERVERLESS_WEBSOCKET_ENDPOINT=https://api-gateway-id.execute-api.ap-northeas
 
 ### Development Stack
 - **LocalStack**: DynamoDB simulation
-- **Serverless Offline**: WebSocket API simulation at `localhost:3001`  
+- **Serverless Framework**: WebSocket API simulation at `localhost:3001`
+- **Serverless Offline Plugin**: WebSocket handlers at `localhost:3002`
 - **Docker Compose**: Orchestration of development services
 
 ### Production Stack

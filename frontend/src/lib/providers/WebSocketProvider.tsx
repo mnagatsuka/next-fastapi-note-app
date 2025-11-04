@@ -22,7 +22,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 			console.log("WebSocketProvider: Cleaning up...");
 			disconnect();
 		};
-	}, []); // Empty dependency array - only run on mount/unmount
+	}, [status, connect, disconnect]); // Include dependencies
 
 	// Don't render anything, just manage the WebSocket connection
 	return <>{children}</>;

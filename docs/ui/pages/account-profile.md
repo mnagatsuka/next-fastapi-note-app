@@ -7,7 +7,7 @@
 - Designed with a responsive, mobile-first approach optimized for profile editing workflows.
 - Features touch-friendly interactions and enhanced keyboard support for desktop.
 - **Client-Side Rendering (CSR)** for real-time interactivity and personalized profile management.
-- Dark mode only in phase 1 - no light mode theme switching available.
+- Single theme design (no light/dark mode switching).
 
 ### URL
 - `/account` (user profile management)
@@ -23,10 +23,10 @@
 This page is composed of the following components. For component details, see the **Storybook** and individual component specs.
 
 ### Primary Components
-- `PageHeader` (account settings title and description)
+- `Header` (global site navigation, inherited from layout)
 - `ProfileSection` (profile display/edit with avatar, name, email)
-- `UpgradePrompt` (for anonymous users to convert to regular accounts)
-- `NavigationButtons` (links to notebook, home, and authentication)
+- Inline upgrade prompts (for anonymous users to convert to regular accounts)
+- Individual navigation buttons (links to notebook, home, and authentication)
 
 ### Responsive Behavior
 - The layout is mobile-first with simple single-column interface.
@@ -113,7 +113,7 @@ This section describes the primary user actions. They are consistent across mobi
 5. Preserves all existing private notes during upgrade process.
 
 #### Component Reference
-- `UpgradePrompt` (inline in account page)
+- `SignUpModal` (with anonymous upgrade flow)
 - `AuthModalProvider`
 
 ### Navigate to Other Sections
@@ -128,7 +128,7 @@ This section describes the primary user actions. They are consistent across mobi
 4. All navigation preserves current authentication state.
 
 #### Component Reference
-- `NavigationButtons` (inline in account page)
+- Individual `Button` components (inline in account page)
 
 
 ## 4. Data Requirements

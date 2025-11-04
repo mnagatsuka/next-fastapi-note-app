@@ -7,7 +7,7 @@
 - Designed with a responsive, mobile-first approach optimized for basic note taking.
 - Features touch-friendly interactions and enhanced keyboard support for desktop.
 - **Client-Side Rendering (CSR)** for real-time interactivity and personalized experience.
-- Dark mode only in phase 1 - no light mode theme switching available.
+- Single theme design (no light/dark mode switching).
 
 ### URL
 - `/me` (personal notebook dashboard)
@@ -23,17 +23,17 @@
 This page is composed of the following components. For component details, see the **Storybook** and individual component specs.
 
 ### Primary Components
-- `PageHeader` (title, user status, and create new note button)
-- `NotesGrid` (responsive grid of user's private notes with built-in empty state)
-- `PrivateNoteCard` (individual note preview with hover actions and metadata)
+- `Header` (global site navigation - inherited from layout)
+- Page header section (title, user status, and create new note button)
+- `PrivateNotesGrid` (responsive grid of user's private notes with built-in empty state)
+- `NoteCard` (individual note preview with hover actions and metadata)
 - `FloatingActionButton` (quick create note button on mobile only)
-- `NoteEditor` (inline text editor for creating/editing notes)
 
 ### Responsive Behavior
 - The layout is mobile-first and fills the screen width by default.
 - On screens 768px and wider (the `md` breakpoint), shows desktop "New Note" button and hides mobile FAB.
 - Page header shows authentication status and note count.
-- Notes arrange in responsive grid (1 column mobile, 2 columns tablet, 3 columns desktop, 4 columns wide screens).
+- Notes arrange in responsive grid (handled by PrivateNotesGrid component).
 - Floating action button appears only on mobile devices for quick note creation.
 - Note cards show edit/delete actions on hover (desktop) or touch (mobile).
 

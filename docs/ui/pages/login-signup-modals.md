@@ -7,7 +7,7 @@
 - Designed with a responsive, mobile-first approach optimized for conversion and accessibility.
 - Features touch-friendly interactions and enhanced keyboard support for desktop.
 - **Client-Side Rendering (CSR)** with modal overlay behavior.
-- Dark mode only in phase 1 - no light mode theme switching available.
+- Single theme design (no light/dark mode switching).
 
 ### URL
 - No direct URL - triggered as modals with state management

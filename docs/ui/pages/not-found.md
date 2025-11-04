@@ -7,7 +7,7 @@
 - Designed with a responsive, mobile-first approach focused on recovery and user guidance.
 - Features touch-friendly interactions and enhanced keyboard support for desktop.
 - **Server-Side Rendering (SSR)** for consistent error handling and SEO optimization.
-- Dark mode only in phase 1 - no light mode theme switching available.
+- Single theme design (no light/dark mode switching).
 
 ### URL
 - Automatically shown for any non-matching route (Next.js `not-found.tsx`)
@@ -23,10 +23,9 @@
 This page is composed of the following components. For component details, see the **Storybook** and individual component specs.
 
 ### Primary Components
-- `Header` (minimal header with site branding and basic navigation)
-- `NotFoundHero` (404 illustration, error message, and explanation)
-- `RecoveryActions` (home page navigation link)
-- `Footer` (minimal footer with essential site links)
+- `Header` (global site navigation - inherited from layout)
+- Error content section (404 message and recovery actions)
+- `Footer` (global site footer - inherited from layout)
 
 ### Responsive Behavior
 - The layout is mobile-first and centers content vertically and horizontally.
@@ -48,8 +47,7 @@ This section describes the primary user actions. They are consistent across mobi
 2. Provides immediate value by showing available public content.
 
 #### Component Reference
-- `RecoveryActions`
-- [Link to relevant Storybook entry](https://localhost:6006/?path=/story/components-recoveryactions)
+- Home button (inline JSX)
 
 ### Go Back
 
@@ -62,7 +60,7 @@ This section describes the primary user actions. They are consistent across mobi
 3. Maintains user context and authentication state.
 
 #### Component Reference
-- `RecoveryActions`
+- Back button (inline JSX)
 
 ## 4. Data Requirements
 
